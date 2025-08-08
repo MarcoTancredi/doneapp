@@ -1,20 +1,23 @@
 # Ação: Modificar
-# Local: tools/apply_changes.py
+# Local: app/templates/cadastro.html
 # Contexto Antes (5 linhas anteriores à modificação):
-from pathlib import Path
-
-ENC = “utf-8”
-
-HEADER_RE = re.compile(r"^# Ação:\s*(.+)$", re.MULTILINE)
-LOCAL_RE = re.compile(r"^# Local:\s*(.+)$", re.MULTILINE)
-
+        <div style="margin-top:16px; font-weight:600;">Autenticações (campo <code>class</code>)</div>
+        <div class="checks">
+          <label class="check-item"><input type="checkbox" name="auth_email" value="1"> E-mail</label>
+          <label class="check-item"><input type="checkbox" name="auth_sms" value="1"> SMS</label>
+          <label class="check-item"><input type="checkbox" name="auth_whatsapp" value="1"> WhatsApp</label>
 # Contexto Depois (5 linhas posteriores à modificação):
-HEADER_RE = re.compile(r"^# Ação:\s*(.+)$", re.MULTILINE)
-LOCAL_RE = re.compile(r"^# Local:\s*(.+)$", re.MULTILINE)
-
-def read_text(p: Path) -> str:
-    return p.read_text(encoding=ENC) if p.exists() else ""
+          <label class="check-item"><input type="checkbox" name="auth_phone" value="1"> Phone</label>
+          <label class="check-item"><input type="checkbox" name="auth_admin" value="1"> Concessão via adm</label>
+        </div>
+        <div class="row">
 # Novo Código:
-from pathlib import Path
-
-ENC = "utf-8"
+        <div style="margin-top:12px; font-weight:600;">Autenticações (campo <code>class</code>)</div>
+        <div class="check-combo" style="background:var(--panel-2); border:1px solid var(--stroke); border-radius:10px; padding:8px 10px; font-size:14px; line-height:1.4;">
+          <label><input type="checkbox" name="auth_email" value="1"> E-mail</label>
+          <label><input type="checkbox" name="auth_sms" value="1"> SMS</label>
+          <label><input type="checkbox" name="auth_whatsapp" value="1"> WhatsApp</label>
+          <label><input type="checkbox" name="auth_phone" value="1"> Phone</label>
+          <label><input type="checkbox" name="auth_admin" value="1"> Concessão via adm</label>
+        </div>
+        <div class="row" style="margin-top:12px;">
