@@ -16,91 +16,9 @@
 
       --bg:#0e0e10; --panel:#141421; --panel-2:#0b0b13; --stroke:#29293c; --accent:#7df9ff; --text:#e4e4e7;
 
-    }
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    *{box-sizing:border-box}
-
-    body{
-
-      background:var(--bg); color:var(--text);
-
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-
-      margin:0; padding:16px; display:flex; min-height:100dvh; justify-content:center;
-
-    }
-
-    .wrap{ width:100%; max-width:420px; }
-
-    .card{
-
-      background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:14px;
-
-      box-shadow:0 0 22px rgba(0,255,255,.08);
-
-    }
-
-    h1{
-
-      margin:0 0 10px; font-size:24px; line-height:1.1; text-align:center; color:var(--accent);
-
-      text-shadow:0 0 8px rgba(125,249,255,.28);
-
-    }
-
-    label{ display:block; margin:4px 0 2px; font-weight:600; font-size:14px; }
-
-    input[type="text"], input[type="email"], input[type="password"]{
-
-      width:100%; background:var(--panel-2); color:var(--text);
-
-      border:1px solid var(--stroke); border-radius:10px;
-
-      padding:6px 8px; font-size:14px; line-height:1.25;
-
-    }
-
-    .hint{ font-size:11px; opacity:.8; margin-top:2px }
-
-    .btn{
-
-      width:100%; background:#1a1b2e; color:var(--accent);
-
-      border:1px solid var(--stroke); padding:8px 10px; border-radius:10px;
-
-      font-weight:700; font-size:14px; margin-top:10px; cursor:pointer;
-
-    }
-
-    .btn:hover{ box-shadow:0 0 14px rgba(125,249,255,.24); }
-
-    .checks-title{ margin:10px 0 6px; font-weight:700; font-size:13px; }
-
-    .check-combo{
-
-      display:flex; flex-wrap:wrap; gap:8px 12px;
-
-      background:var(--panel-2); border:1px solid var(--stroke);
-
-      border-radius:10px; padding:8px; line-height:1.25; font-size:13px;
-
-    }
-
-    .check-combo label{ display:flex; align-items:center; gap:6px; margin:0; }
-
-    .row{ display:flex; gap:8px; margin-top:10px; }
-
-    .link{
-
-      flex:1; text-align:center; text-decoration:none; color:var(--accent);
-
-      border:1px solid var(--stroke); border-radius:10px; padding:8px 10px; background:#11111b; font-size:14px;
-
-    }
-
-    @media (min-width:920px){ .wrap{ max-width:440px } }
-
-  </style>
+  <link rel="stylesheet" href="/static/nebula.css">
 
 </head>
 
@@ -112,6 +30,107 @@
 
     <div class="card">
 
+      <form method="post" action="/cadastro" autocomplete="on" id="signupForm">
+
+        <label>Usuário</label>
+
+        <input type="text" name="user" placeholder="Nome" required>
+
+        <label>E-mail</label>
+
+        <input type="email" name="email" placeholder="email@exemplo.com" required>
+
+        <label>Senha</label>
+
+        <input type="password" name="password" placeholder="Senha" required>
+
+        <label>Confirmar Senha</label>
+
+        <input type="password" name="password2" placeholder="Repita a senha" required>
+
+        <label>Empresa</label>
+
+        <input type="text" name="company" placeholder="Empresa (opcional)">
+
+        <label>Telefone</label>
+
+        <input type="text" name="phone" placeholder="+55 11 99999-9999">
+
+
+
+        <div class="checks-title">Autenticações (campo <code>class</code>)</div>
+
+        <div class="check-combo">
+
+          <label><input type="checkbox" name="auth_email" value="1">E-mail</label>
+
+          <label><input type="checkbox" name="auth_sms" value="1">SMS</label>
+
+          <label><input type="checkbox" name="auth_whatsapp" value="1">WhatsApp</label>
+
+          <label><input type="checkbox" name="auth_phone" value="1">Phone</label>
+
+          <label><input type="checkbox" name="auth_admin" value="1">ADM</label>
+
+        </div>
+
+
+
+        <button class="btn" type="submit" id="signupBtn">Sign up</button>
+
+
+
+        <div class="row">
+
+          <a class="oauth" href="/" style="background:#111b2d;color:var(--accent);">Go Back</a>
+
+          <a class="oauth" href="/login" style="background:#111b2d;color:var(--accent);">Já tenho conta</a>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <script>
+
+    (function(){
+
+      // Mensagem no próprio botão por 3s e volta ao login
+
+      const cfg = { long_ms: {{ 3000 if not cfg else cfg.get('long_ms', 3000) if cfg else 3000 }} };
+
+      const form = document.getElementById('signupForm');
+
+      const btn = document.getElementById('signupBtn');
+
+      form.addEventListener('submit', function(e){
+
+        e.preventDefault();
+
+        const original = btn.textContent;
+
+        btn.disabled = true;
+
+        btn.style.color = '#22c55e';
+
+        btn.textContent = 'Cadastro recebido, aguarde liberação';
+
+        setTimeout(()=>{ window.location.href = '/'; }, cfg.long_ms || 3000);
+
+      });
+
+    })();
+
+  </script>
+
+</body>
+
+</html>
       <form method="post" action="/cadastro" autocomplete="on">
 
         <label>Usuário</label>
