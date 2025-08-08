@@ -10,7 +10,7 @@ import subprocess
 
 import sys
 
-import os
+import json
 
 
 
@@ -26,19 +26,49 @@ TEMPLATES_DIR = BASE_DIR / "app" / "templates"
 
 TOOLS_DIR = BASE_DIR / "tools"
 
+CFG_PATH = BASE_DIR / "app" / "config" / "ui.json"
+
 
 
 env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 
 
+def load_ui_cfg() -> dict:
+
+    try:
+
+        if CFG_PATH.exists():
+
+            return json.loads(CFG_PATH.read_text(encoding="utf-8"))
+
+    except Exception:
+
+        pass
+
+    # defaults
+
+    return {
+
+        "success_color": "#22c55e",
+
+        "success_ms": 1000,
+
+        "error_color": "#ef4444",
+
+        "error_ms": 3000,
+
+        "social_enabled": {
+
+            "youtube": False, "tiktok": False, "github": False, "facebook": False
+
+        }
+
+    }
+
+
+
 def run_apply_changes() -> str:
-
-    """
-
-    Executa o aplicador diretamente (sem depender do .bat) e captura a saída.
-
-    """
 
     cmd = [sys.executable, str(TOOLS_DIR / "apply_changes.py"), "--input", str(INBOX)]
 
@@ -62,17 +92,25 @@ async def login_view(request: Request):
 
     tpl = env.get_template("login.html")
 
-    return tpl.render()
+    cfg = load_ui_cfg()
+
+    return tpl.render(cfg=cfg)
 
 
 
 @app.post("/login", response_class=HTMLResponse)
 
-async def login_post(email: str = Form(...), password: str = Form(...)):
+async def login_post(email: str = Form(...), password: str = Form(...), keep: str = Form("0")):
 
     # Placeholder — autenticação real virá depois
 
-    ok_html = "<html><body style='background:#0e0e10;color:#e4e4e7;font-family:system-ui'><h2>Login recebido</h2><p>Em breve validaremos os dados.</p><a href='/' style='color:#7df9ff'>Voltar</a></body></html>"
+    cfg = load_ui_cfg()
+
+    color = cfg.get("success_color", "#22c55e")
+
+    ms = int(cfg.get("success_ms", 1000))
+
+    ok_html = f"<html><body style='background:#0e0e10;color:#e4e4e7;font-family:system-ui'><h2 style='color:{color};'>Login recebido</h2><p>Em breve validaremos os dados.</p><a href='/' style='color:#7df9ff'>Voltar</a><script>setTimeout(function(){{}}, {ms});</script></body></html>"
 
     return HTMLResponse(ok_html)
 
@@ -118,7 +156,13 @@ async def cadastro_submit(
 
     # Placeholder — persistência virá depois
 
-    ok_html = "<html><body style='background:#0e0e10;color:#e4e4e7;font-family:system-ui'><h2>Cadastro recebido ✅</h2><p>Em breve validaremos os dados.</p><a href='/cadastro' style='color:#7df9ff'>Voltar</a></body></html>"
+    cfg = load_ui_cfg()
+
+    color = cfg.get("success_color", "#22c55e")
+
+    ms = int(cfg.get("success_ms", 1000))
+
+    ok_html = f"<html><body style='background:#0e0e10;color:#e4e4e7;font-family:system-ui'><h2 style='color:{color};'>Cadastro recebido ✅</h2><p>Em breve validaremos os dados.</p><a href='/cadastro' style='color:#7df9ff'>Voltar</a><script>setTimeout(function(){{}}, {ms});</script></body></html>"
 
     return HTMLResponse(ok_html)
 
@@ -147,8 +191,6 @@ async def updota_apply(patch: str = Form(...)):
     INBOX.write_text(patch, encoding="utf-8")
 
     output = run_apply_changes()
-
-    # Mostra a saída no mesmo textarea (substitui o conteúdo)
 
     tpl = env.get_template("index.html")
 
