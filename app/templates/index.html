@@ -1,118 +1,53 @@
 <!doctype html>
-
 <html lang="pt-br">
-
 <head>
-
   <meta charset="utf-8">
-
-  <title>Done — Updota</title>
-
+  <title>Updota — Colar & Aplicar</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
+  <!-- tema neon / fundo -->
+  <link rel="stylesheet" href="/static/nebula.css">
   <style>
-
-    :root{ --bg:#0e0e10; --panel:#151521; --panel2:#0b0b13; --stroke:#2a2a3b; --accent:#7df9ff; --text:#e4e4e7; }
-
-    *{box-sizing:border-box}
-
-    body{ background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-
-          margin:0; padding:16px; display:flex; min-height:100dvh; justify-content:center; }
-
-    .container{ width:100%; max-width:980px; }
-
-    h1{ color:var(--accent); text-shadow:0 0 8px rgba(0,255,255,.4); margin:0 0 12px; }
-
-    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:12px; box-shadow:0 0 24px rgba(0,255,255,.08); }
-
-    textarea{ width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--stroke); border-radius:12px;
-
-              padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; font-size:13px; height:44vh; }
-
-    .row{ display:flex; gap:10px; margin-top:10px; }
-
-    .btn{ background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke); padding:10px 14px; border-radius:10px; cursor:pointer; text-decoration:none; }
-
-    .btn:hover{ box-shadow:0 0 16px rgba(125,249,255,.3); }
-
-    .hint{ opacity:.85; font-size:13px; margin-top:8px; }
-
-  </style>
-
+    .container{ max-width:900px; margin:0 auto; }
+    h1{ margin:0 0 12px; color:var(--accent); text-align:center; }
+    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:16px; padding:14px; box-shadow:var(--glow); }
+    textarea{
+      width:100%; min-height:320px; resize:vertical; background:var(--panel2); color:var(--text);
+      border:1px solid var(--stroke); border-radius:12px; padding:10px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    }
     .row{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
-
-    .btn{ background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke); padding:10px 14px; border-radius:10px; cursor:pointer; text-decoration:none; box-shadow:0 0 14px rgba(125,249,255,.18);}
-
+    .btn{
+      background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke); padding:10px 14px;
+      border-radius:10px; cursor:pointer; text-decoration:none; box-shadow:0 0 14px rgba(125,249,255,.18);
+    }
     .btn:hover{ box-shadow:0 0 18px rgba(125,249,255,.3); }
-
     .hint{ opacity:.85; font-size:13px; margin-top:8px; }
-
   </style>
-
 </head>
-
 <body>
-
-  <div class="container">
-
+  <div class="container wrap">
     <h1>Updota — Colar & Aplicar</h1>
-
     <div class="card">
-
       <form method="post" action="/updota/apply">
-
         <textarea name="patch" placeholder="# Cole aqui os blocos 'Ação: ...' conforme PROTOCOL.md">{{ current }}</textarea>
-
         <div class="row">
-
           <button class="btn" type="submit">Salvar Patch & Aplicar</button>
-
           <a class="btn" href="/updota?clear=1">Recarregar (limpar)</a>
-
           <button class="btn" type="button" id="btnRestart">Reiniciar servidor</button>
-
           <a class="btn" href="/">Login</a>
-
           <a class="btn" href="/cadastro">Cadastro</a>
-
         </div>
-
         <div class="hint">Ao salvar, o aplicador será executado automaticamente e a saída será exibida acima (substitui o conteúdo da caixa).</div>
-
       </form>
-
     </div>
-
   </div>
-
   <script>
-
     document.getElementById('btnRestart').addEventListener('click', async ()=>{
-
-      const r = await fetch('/updota/restart', {method:'POST'});
-
-      alert(await r.text());
-
+      try{
+        const r = await fetch('/updota/restart', {method:'POST'});
+        alert(await r.text());
+      }catch(e){ alert('Falha ao solicitar restart: ' + e); }
     });
-
   </script>
-
 </body>
-
-</html>
-          <a class="btn" href="/cadastro">Cadastro</a>
-
-        </div>
-
-        <div class="hint">Ao salvar, o aplicador será executado automaticamente e a saída será exibida acima (substitui o conteúdo da caixa).</div>
-
-      </form>
-
-    </div>
-
-  </div>
-
-</body>
-
 </html>
