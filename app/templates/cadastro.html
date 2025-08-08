@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Done — Cadastro</title>
+  <style>
+    :root{
+      --bg:#0a0f1f; --neon:#00ffd5; --txt:#e8f6ff; --muted:#8aa6c1; --ok:#1fff9f; --err:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;color:var(--txt);
+         background:radial-gradient(1200px 700px at 50% -10%, #102040 0%, #091226 55%, #050914 100%);}
+    .wrap{min-height:100svh;display:flex;justify-content:center;align-items:center;padding:24px}
+    .card{
+      width:min(460px,94vw);background:linear-gradient(180deg, rgba(10,20,40,.92), rgba(8,16,32,.92));
+      border-radius:18px;padding:22px;border:1px solid rgba(0,255,213,.16);
+      box-shadow:0 28px 80px rgba(0,255,213,.16), inset 0 0 0 1px rgba(0,255,213,.16);
+      backdrop-filter: blur(8px);
+    }
+    h1{font-size:20px;margin:2px 0 8px}
+    label{display:block;font-size:12px;color:var(--muted);margin:8px 2px 6px}
+    input{
+      width:100%;padding:12px;border-radius:12px;border:1px solid rgba(0,255,213,.22);
+      background:rgba(4,10,22,.6);color:var(--txt);
+    }
+    .checks{margin-top:10px;border:1px dashed rgba(0,255,213,.25);border-radius:12px;padding:10px}
+    .checks legend{font-size:12px;color:var(--muted)}
+    .row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .chkline{display:flex;align-items:center;gap:8px;margin:4px 0}
+    .btn{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,255,213,.35);
+         background:linear-gradient(180deg, rgba(0,255,213,.16), rgba(0,255,213,.08));color:var(--txt);cursor:pointer;font-weight:600}
+    .status{height:18px;font-size:12px;margin:8px 2px;color:var(--ok);opacity:0;transition:.2s}
+    .status.show{opacity:1}
+    a{color:#7fd8ff;text-decoration:none}
+    .foot{display:flex;justify-content:space-between;font-size:12px;margin-top:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Cadastro</h1>
+      <form method="post" onsubmit="return submitForm()">
+        <label>Nome completo</label>
+        <input name="fullname" required/>
+
+        <label>User Name (único)</label>
+        <input name="username" required/>
+
+        <label>E-mail (único)</label>
+        <input name="email" type="email" required/>
+
+        <label>Telefone</label>
+        <input name="phone"/>
+
+        <fieldset class="checks">
+          <legend>Validações desejadas</legend>
+          <div class="row">
+            <div class="chkline"><input type="checkbox" name="auth_email"/> <span>E-mail</span></div>
+            <div class="chkline"><input type="checkbox" name="auth_sms"/> <span>SMS</span></div>
+            <div class="chkline"><input type="checkbox" name="auth_whatsapp"/> <span>WhatsApp</span></div>
+            <div class="chkline"><input type="checkbox" name="auth_phone"/> <span>Phone</span></div>
+            <div class="chkline" style="grid-column:1/3"><input type="checkbox" name="auth_admin"/> <span>Concessão de acesso via adm</span></div>
+          </div>
+        </fieldset>
+
+        <div id="status" class="status"></div>
+
+        <button class="btn" type="submit" id="btn">Sign up</button>
+      </form>
+
+      <div class="foot">
+        <a href="/login">Voltar</a>
+        <a href="/updota">/updota</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function submitForm(){
+      const btn = document.getElementById('btn');
+      const st = document.getElementById('status');
+      btn.disabled = true;
+      btn.textContent = 'Cadastro recebido, aguarde liberação';
+      st.textContent = 'Cadastro recebido, aguarde liberação';
+      st.className = 'status show';
+      setTimeout(()=>{ window.location.href = '/login?msg=Cadastro%20recebido%2C%20aguarde%20libera%C3%A7%C3%A3o&ok=1'; }, 3000);
+      return false; // evita submit real; backend virá depois
+    }
+  </script>
+</body>
+</html>

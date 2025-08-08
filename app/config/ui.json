@@ -1,0 +1,48 @@
+{
+
+  "success_color": "#22c55e",
+
+  "success_ms": 1000,
+
+  "error_color": "#ef4444",
+
+  "error_ms": 3000,
+
+  "social_enabled": {
+
+    "youtube": false,
+
+    "tiktok": false,
+
+{
+
+  "success_color": "#22c55e",
+
+  "success_ms": 1000,
+
+  "error_color": "#ef4444",
+
+  "error_ms": 3000,
+
+  "long_ms": 3000,
+
+  "social_enabled": {
+
+    "youtube": false,
+
+    "tiktok": false,
+
+    "github": false,
+
+    "facebook": false
+
+  }
+
+}
+    "github": false,
+
+    "facebook": false
+
+  }
+
+}

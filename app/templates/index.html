@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Done — Updota</title>
+  <style>
+    :root{--bg:#0a0f1f; --neon:#00ffd5; --txt:#e8f6ff; --muted:#8aa6c1}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;color:var(--txt);
+         background:radial-gradient(1200px 700px at 50% -10%, #102040 0%, #091226 55%, #050914 100%);}
+    .wrap{min-height:100svh;display:flex;justify-content:center;align-items:center;padding:24px}
+    .card{width:min(980px,95vw);background:linear-gradient(180deg, rgba(10,20,40,.92), rgba(8,16,32,.92));
+          border-radius:18px;padding:18px;border:1px solid rgba(0,255,213,.16);
+          box-shadow:0 28px 80px rgba(0,255,213,.16), inset 0 0 0 1px rgba(0,255,213,.16);
+          backdrop-filter: blur(8px);}
+    textarea{width:100%;min-height:42vh;border-radius:12px;padding:12px;border:1px solid rgba(0,255,213,.25);
+             background:rgba(5,12,24,.6);color:var(--txt);font-family:ui-monospace,Consolas,monospace;font-size:13px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(0,255,213,.35);
+           background:linear-gradient(180deg, rgba(0,255,213,.16), rgba(0,255,213,.08));
+           color:var(--txt);cursor:pointer}
+    pre{white-space:pre-wrap;background:rgba(5,12,24,.65);border:1px solid rgba(0,255,213,.2);
+        border-radius:12px;padding:12px;max-height:36vh;overflow:auto}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    h1{font-size:18px;margin:0 0 8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>/updota — aplicar patches</h1>
+      <form method="post" action="/updota">
+        <textarea name="patch" id="patch" placeholder="# Cole seus blocos aqui…"></textarea>
+        <div class="row">
+          <button type="button" onclick="clearBox()">Limpar</button>
+          <button type="submit">Salvar Patch e Aplicar</button>
+          <button type="button" onclick="reloadServer()">Recarregar servidor</button>
+        </div>
+      </form>
+
+      <div class="grid">
+        <div>
+          <h1>Saída do aplicador</h1>
+          <pre id="out">{{ last_output }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function clearBox(){ document.getElementById('patch').value = '' }
+    async function reloadServer(){
+      try{
+        const r = await fetch('/_dev/reload', {method:'POST'});
+        const t = await r.text();
+        document.getElementById('out').textContent = (document.getElementById('out').textContent+'\n\n'+t).trim();
+      }catch(e){
+        alert('Falha ao tocar reload: '+e);
+      }
+    }
+  </script>
+</body>
+</html>

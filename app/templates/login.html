@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Done — Login</title>
+  <style>
+    :root{
+      --bg1:#070b1a; --bg2:#0a0f1f; --neon:#00ffd5; --txt:#e8f6ff; --muted:#8aa6c1;
+      --ok:#1fff9f; --err:#ff4d6d;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Arial;color:var(--txt);
+         background:radial-gradient(1200px 700px at 50% -10%, #102040 0%, #091226 55%, #050914 100%);}
+    .wrap{min-height:100svh;display:flex;justify-content:center;align-items:center;padding:24px}
+    .card{
+      width:min(420px,94vw);
+      background:linear-gradient(180deg, rgba(10,20,40,.92), rgba(8,16,32,.92));
+      border-radius:18px;padding:22px 20px 18px;
+      box-shadow:0 28px 80px rgba(0,255,213,.16), inset 0 0 0 1px rgba(0,255,213,.16);
+      backdrop-filter: blur(8px);
+    }
+    h1{font-size:22px;margin:4px 0 6px;letter-spacing:.4px}
+    .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
+    label{display:block;font-size:12px;color:var(--muted);margin:8px 2px 6px}
+    input[type="text"], input[type="password"]{
+      width:100%;padding:12px 12px;border-radius:12px;border:1px solid rgba(0,255,213,.22);
+      background:rgba(4,10,22,.6);color:var(--txt);outline:none;
+    }
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
+    .left{display:flex;gap:8px;align-items:center}
+    .chk{width:16px;height:16px;accent-color:var(--neon)}
+    .btn{
+      width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,255,213,.35);
+      background:linear-gradient(180deg, rgba(0,255,213,.16), rgba(0,255,213,.08));
+      color:var(--txt);cursor:pointer;font-weight:600;letter-spacing:.3px;
+    }
+    .btn:hover{filter:brightness(1.1)}
+    .hint{height:18px; /* reserva espaço p/ não “dançar” */
+          font-size:12px;margin:8px 2px 2px;color:var(--muted)}
+    .status{height:20px;font-size:13px;margin:10px 2px 6px;opacity:.0;transition:.2s}
+    .status.show{opacity:1}
+    .status.ok{color:var(--ok)}
+    .status.err{color:var(--err)}
+    .divider{height:1px;background:linear-gradient(90deg, transparent, rgba(0,255,213,.35), transparent);margin:12px 0}
+    .logar{font-size:12px;color:var(--muted);margin:8px 2px 10px}
+    .sso{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .sso button{
+      padding:10px;border-radius:12px;border:1px solid rgba(0,255,213,.25);
+      background:rgba(4,10,22,.6);cursor:pointer;color:var(--txt)
+    }
+    .foot{display:flex;justify-content:space-between;font-size:12px;margin-top:12px}
+    a{color:#7fd8ff;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Bem-vindo</h1>
+      <div class="sub">Entre para continuar</div>
+
+      <div id="status" class="status"></div>
+
+      <label>User Name / e-mail</label>
+      <input id="user" type="text" placeholder="ex: joao | joao@email.com" autocomplete="username"/>
+
+      <label>Senha</label>
+      <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+
+      <div class="row">
+        <div class="left">
+          <input id="keep" class="chk" type="checkbox"/>
+          <label for="keep" style="margin:0;font-size:12px;">manter-me conectado</label>
+        </div>
+        <div><a href="/cadastro">Criar conta</a></div>
+      </div>
+
+      <div class="hint" id="hint">Logar-se com</div>
+
+      <div class="sso">
+        <button onclick="sso('YouTube')">YouTube</button>
+        <button onclick="sso('TikTok')">TikTok</button>
+        <button onclick="sso('GitHub')">GitHub</button>
+        <button onclick="sso('Facebook')">Facebook</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <button class="btn" onclick="login()">Entrar</button>
+
+      <div class="foot">
+        <span></span>
+        <a href="/updota">/updota</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const hintEl = document.getElementById('hint');
+
+    // Renderiza mensagem inicial (se veio via query)
+    (function seedFromQuery(){
+      const params = new URLSearchParams(window.location.search);
+      const msg = params.get('msg');
+      const ok  = params.get('ok');
+      if(msg){
+        showStatus(decodeURIComponent(msg), ok === '1' ? 'ok' : 'err', ok === '1' ? 1000 : 3000);
+      }
+    })();
+
+    function showStatus(msg, kind='ok', ms=1000){
+      statusEl.textContent = msg;
+      statusEl.className = 'status show ' + (kind === 'ok' ? 'ok':'err');
+      setTimeout(() => { statusEl.className = 'status'; }, ms);
+    }
+
+    function sso(provider){
+      hintEl.textContent = 'Em implementação';
+      showStatus(`Login por ${provider}: em implementação`, 'err', 3000);
+    }
+
+    function login(){
+      // Simula sucesso por enquanto e redireciona após 1s:
+      showStatus('Login efetuado com sucesso', 'ok', 1000);
+      setTimeout(()=>{ window.location.href = '/home'; }, 1000);
+    }
+  </script>
+</body>
+</html>
