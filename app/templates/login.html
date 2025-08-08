@@ -158,6 +158,16 @@
 
           YouTube
 
+      <div class="social-title" id="socialTitle" style="min-height:20px">Logar-se com</div>
+
+      <div class="oauths">
+
+        <a class="oauth yt" data-provider="youtube" href="javascript:void(0)">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a4.6 4.6 0 0 0-3.3-3.3C18 2.3 12 2.3 12 2.3s-6 0-8.2.6A4.6 4.6 0 0 0 .5 6.2 48.6 48.6 0 0 0 0 12a48.6 48.6 0 0 0 .5 5.8 4.6 4.6 0 0 0 3.3 3.3c2.2.6 8.2.6 8.2.6s6 0 8.2-.6a4.6 4.6 0 0 0 3.3-3.3A48.6 48.6 0 0 0 24 12a48.6 48.6 0 0 0-.5-5.8zM9.8 15.5V8.5L15.8 12l-6 3.5z"/></svg>
+
+          YouTube
+
         </a>
 
         <a class="oauth tt" data-provider="tiktok" href="javascript:void(0)">
@@ -176,6 +186,117 @@
 
         </a>
 
+        <a class="oauth fb" data-provider="facebook" href="javascript:void(0)">
+
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7h-2.4V12h2.4V9.8c0-2.4 1.4-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.1c-1.1 0-1.5.7-1.5 1.5V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>
+
+          Facebook
+
+        </a>
+
+      </div>
+
+      <script>
+
+        (function(){
+
+          const cfgEl = document.getElementById('cfg');
+
+          const socialTitle = document.getElementById('socialTitle');
+
+          const okColor = cfgEl.dataset.successColor || '#22c55e';
+
+          const okMs = parseInt(cfgEl.dataset.successMs || '1000', 10);
+
+          const errColor = cfgEl.dataset.errorColor || '#ef4444';
+
+          const errMs = parseInt(cfgEl.dataset.errorMs || '3000', 10);
+
+          const en = {
+
+            youtube: cfgEl.dataset.youtube === '1',
+
+            tiktok:  cfgEl.dataset.tiktok === '1',
+
+            github:  cfgEl.dataset.github === '1',
+
+            facebook:cfgEl.dataset.facebook === '1',
+
+          };
+
+          function titleMsg(text, color, ms){
+
+            socialTitle.textContent = text;
+
+            socialTitle.style.color = color;
+
+            setTimeout(()=>{ socialTitle.textContent = 'Logar-se com'; socialTitle.style.color=''; }, ms);
+
+          }
+
+          document.querySelectorAll('.oauth').forEach(btn=>{
+
+            btn.addEventListener('click', ()=>{
+
+              const p = btn.dataset.provider;
+
+              if(!en[p]){
+
+                titleMsg('em implementação', errColor, errMs);
+
+              } else {
+
+                window.location.href = '/oauth/' + p;
+
+              }
+
+            });
+
+          });
+
+          if(!en.youtube && !en.tiktok && !en.github && !en.facebook){
+
+            titleMsg('em implementação', errColor, errMs);
+
+          }
+
+          // botão Entrar sem dança: troca texto por 1s/3s e depois navega
+
+          const form = document.getElementById('loginForm');
+
+          const btn = form.querySelector('button[type="submit"]');
+
+          form.addEventListener('submit', (e)=>{
+
+            e.preventDefault();
+
+            const pwd = form.querySelector('input[name="password"]').value || '';
+
+            const ok = pwd.length >= 4; // placeholder de validação
+
+            btn.disabled = true;
+
+            const original = btn.textContent;
+
+            if(ok){
+
+              btn.style.color = okColor; btn.textContent = 'Login efetuado com sucesso';
+
+              setTimeout(()=>{ window.location.href = '/home'; }, okMs);
+
+            } else {
+
+              btn.style.color = errColor; btn.textContent = 'Login FAILED - Try AGAIN';
+
+              setTimeout(()=>{ btn.disabled = false; btn.style.color=''; btn.textContent = original; }, errMs);
+
+            }
+
+          });
+
+        })();
+
+      </script>
         <a class="oauth fb" data-provider="facebook" href="javascript:void(0)">
 
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7h-2.4V12h2.4V9.8c0-2.4 1.4-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.1c-1.1 0-1.5.7-1.5 1.5V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>
