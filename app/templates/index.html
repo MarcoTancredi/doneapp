@@ -1,37 +1,79 @@
 <!doctype html>
+
 <html lang="pt-br">
+
 <head>
+
   <meta charset="utf-8">
-  <title>Done — Colar Patch</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Done — Updota</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <style>
-    body { background:#0e0e10; color:#e4e4e7; font-family:system-ui, sans-serif; margin:0; padding:24px; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .card { background:#151521; border:1px solid #272738; border-radius:16px; padding:16px; box-shadow:0 0 24px rgba(0,255,255,0.08); }
-    h1 { color:#7df9ff; text-shadow:0 0 8px rgba(0,255,255,0.4); }
-    textarea { width:100%; height:60vh; background:#0b0b13; color:#e4e4e7; border:1px solid #2a2a3b; border-radius:12px; padding:12px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; font-size:13px; }
-    .row { display:flex; gap:12px; margin-top:12px; }
-    .btn { background:#1a1b2e; color:#7df9ff; border:1px solid #2a2a3b; padding:10px 16px; border-radius:10px; cursor:pointer; text-decoration:none; display:inline-block; }
-    .btn:hover { box-shadow:0 0 16px rgba(125,249,255,0.3); }
-    .hint { opacity:.8; font-size:14px; margin-top:8px; }
+
+    :root{ --bg:#0e0e10; --panel:#151521; --panel2:#0b0b13; --stroke:#2a2a3b; --accent:#7df9ff; --text:#e4e4e7; }
+
+    *{box-sizing:border-box}
+
+    body{ background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+
+          margin:0; padding:16px; display:flex; min-height:100dvh; justify-content:center; }
+
+    .container{ width:100%; max-width:980px; }
+
+    h1{ color:var(--accent); text-shadow:0 0 8px rgba(0,255,255,.4); margin:0 0 12px; }
+
+    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:12px; box-shadow:0 0 24px rgba(0,255,255,.08); }
+
+    textarea{ width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--stroke); border-radius:12px;
+
+              padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace; font-size:13px; height:44vh; }
+
+    .row{ display:flex; gap:10px; margin-top:10px; }
+
+    .btn{ background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke); padding:10px 14px; border-radius:10px; cursor:pointer; text-decoration:none; }
+
+    .btn:hover{ box-shadow:0 0 16px rgba(125,249,255,.3); }
+
+    .hint{ opacity:.85; font-size:13px; margin-top:8px; }
+
   </style>
+
 </head>
+
 <body>
+
   <div class="container">
-    <h1>Done — Colar Patch</h1>
+
+    <h1>Updota — Colar & Aplicar</h1>
+
     <div class="card">
-      <form method="post" action="/apply">
+
+      <form method="post" action="/updota/apply">
+
         <textarea name="patch" placeholder="# Cole aqui os blocos 'Ação: ...' conforme PROTOCOL.md">{{ current }}</textarea>
+
         <div class="row">
-          <button class="btn" type="submit">Salvar Patch</button>
-          <a class="btn" href="/">Recarregar</a>
-          <a class="btn" href="/cadastro">Ir para Cadastro</a>
+
+          <button class="btn" type="submit">Salvar Patch & Aplicar</button>
+
+          <a class="btn" href="/updota?clear=1">Recarregar (limpar)</a>
+
+          <a class="btn" href="/">Login</a>
+
+          <a class="btn" href="/cadastro">Cadastro</a>
+
         </div>
-        <div class="hint">
-          Após salvar, execute <code>run_apply.bat</code> (Windows) para aplicar as alterações no repositório.
-        </div>
+
+        <div class="hint">Ao salvar, o aplicador será executado automaticamente e a saída será exibida acima (substitui o conteúdo da caixa).</div>
+
       </form>
+
     </div>
+
   </div>
+
 </body>
+
 </html>
