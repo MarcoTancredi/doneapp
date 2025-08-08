@@ -135,7 +135,13 @@ async def home_view(request: Request):
     tpl = env.get_template("home.html")
 
     return tpl.render()
-    return HTMLResponse(ok_html)
+@app.get("/config", response_class=HTMLResponse)
+
+async def config_view(request: Request):
+
+    tpl = env.get_template("config.html")
+
+    return tpl.render()    return HTMLResponse(ok_html)
 
 
 
