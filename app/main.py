@@ -110,8 +110,31 @@ async def login_post(email: str = Form(...), password: str = Form(...), keep: st
 
     ms = int(cfg.get("success_ms", 1000))
 
+@app.post("/login", response_class=HTMLResponse)
+
+async def login_post(email: str = Form(...), password: str = Form(...), keep: str = Form("0")):
+
+    # A lógica real virá depois; por enquanto a UI trata no JS.
+
+    cfg = load_ui_cfg()
+
+    color = cfg.get("success_color", "#22c55e")
+
+    ms = int(cfg.get("success_ms", 1000))
+
     ok_html = f"<html><body style='background:#0e0e10;color:#e4e4e7;font-family:system-ui'><h2 style='color:{color};'>Login recebido</h2><p>Em breve validaremos os dados.</p><a href='/' style='color:#7df9ff'>Voltar</a><script>setTimeout(function(){{}}, {ms});</script></body></html>"
 
+    return HTMLResponse(ok_html)
+
+
+
+@app.get("/home", response_class=HTMLResponse)
+
+async def home_view(request: Request):
+
+    tpl = env.get_template("home.html")
+
+    return tpl.render()
     return HTMLResponse(ok_html)
 
 
