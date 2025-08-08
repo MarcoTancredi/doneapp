@@ -18,67 +18,9 @@
 
     body{ background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 
-          margin:0; padding:16px; display:flex; min-height:100dvh; justify-content:center; }
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    .wrap{ width:100%; max-width:420px; }
-
-    h1{ margin:0 0 10px; font-size:24px; text-align:center; color:var(--accent); text-shadow:0 0 8px rgba(125,249,255,.3); }
-
-    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:14px;
-
-           box-shadow:0 0 20px rgba(0,255,255,.08); }
-
-    label{ display:block; margin:6px 0 4px; font-weight:600; font-size:14px; }
-
-    input[type="text"], input[type="email"], input[type="password"]{
-
-      width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--stroke); border-radius:10px;
-
-      padding:8px 10px; font-size:14px; line-height:1.25;
-
-    }
-
-    .row{ display:flex; gap:8px; margin-top:10px; }
-
-    .btn{ width:100%; background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke);
-
-          padding:10px 12px; border-radius:10px; font-weight:700; font-size:14px; margin-top:10px; cursor:pointer; }
-
-    .btn:hover{ box-shadow:0 0 14px rgba(125,249,255,.24); }
-
-    .muted{ text-align:center; margin-top:10px; font-size:13px; opacity:.8; }
-
-    a{ color:var(--accent); text-decoration:none; }
-
-    .inline{ display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px; }
-
-    /* Social buttons */
-
-    .social-title{ text-align:center; opacity:.9; margin:10px 0 6px; font-size:12px; }
-
-    .oauths{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
-
-    .oauth{ display:flex; align-items:center; justify-content:center; gap:8px;
-
-            color:#fff; border:1px solid var(--stroke); border-radius:10px; padding:10px 12px;
-
-            font-weight:700; font-size:14px; cursor:pointer; text-decoration:none; }
-
-    .yt{ background:#ff0000; }
-
-    .tt{ background:#000000; }
-
-    .gh{ background:#000000; }
-
-    .fb{ background:#1877f2; }
-
-    .oauth svg{ width:18px; height:18px; fill:#fff; }
-
-    /* Msg bar (sem popup) */
-
-    .msg{ margin:8px 0 0; padding:8px 10px; border-radius:10px; font-size:13px; font-weight:700; display:none; text-align:center; }
-
-  </style>
+  <link rel="stylesheet" href="/static/nebula.css">
 
 </head>
 
@@ -100,6 +42,8 @@
 
          data-error-ms="{{ cfg.get('error_ms', 3000) }}"
 
+         data-long-ms="{{ cfg.get('long_ms', 3000) }}"
+
          data-youtube="{{ '1' if cfg.get('social_enabled', {}).get('youtube', False) else '0' }}"
 
          data-tiktok="{{ '1' if cfg.get('social_enabled', {}).get('tiktok', False) else '0' }}"
@@ -113,10 +57,6 @@
 
 
     <div class="card">
-
-      <div id="msg" class="msg"></div>
-
-
 
       <form method="post" action="/login" id="loginForm">
 
@@ -142,23 +82,13 @@
 
 
 
-        <button class="btn" type="submit">Entrar</button>
+        <button class="btn" type="submit" id="loginBtn">Entrar</button>
 
       </form>
 
 
 
       <div class="social-title" id="socialTitle">Logar-se com</div>
-
-      <div class="oauths">
-
-        <a class="oauth yt" data-provider="youtube" href="javascript:void(0)">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a4.6 4.6 0 0 0-3.3-3.3C18 2.3 12 2.3 12 2.3s-6 0-8.2.6A4.6 4.6 0 0 0 .5 6.2 48.6 48.6 0 0 0 0 12a48.6 48.6 0 0 0 .5 5.8 4.6 4.6 0 0 0 3.3 3.3c2.2.6 8.2.6 8.2.6s6 0 8.2-.6a4.6 4.6 0 0 0 3.3-3.3A48.6 48.6 0 0 0 24 12a48.6 48.6 0 0 0-.5-5.8zM9.8 15.5V8.5L15.8 12l-6 3.5z"/></svg>
-
-          YouTube
-
-      <div class="social-title" id="socialTitle" style="min-height:20px">Logar-se com</div>
 
       <div class="oauths">
 
@@ -196,119 +126,135 @@
 
       </div>
 
-      <script>
 
-        (function(){
 
-          const cfgEl = document.getElementById('cfg');
+      <div class="muted" style="text-align:center; margin-top:12px;">
 
-          const socialTitle = document.getElementById('socialTitle');
-
-          const okColor = cfgEl.dataset.successColor || '#22c55e';
-
-          const okMs = parseInt(cfgEl.dataset.successMs || '1000', 10);
-
-          const errColor = cfgEl.dataset.errorColor || '#ef4444';
-
-          const errMs = parseInt(cfgEl.dataset.errorMs || '3000', 10);
-
-          const en = {
-
-            youtube: cfgEl.dataset.youtube === '1',
-
-            tiktok:  cfgEl.dataset.tiktok === '1',
-
-            github:  cfgEl.dataset.github === '1',
-
-            facebook:cfgEl.dataset.facebook === '1',
-
-          };
-
-          function titleMsg(text, color, ms){
-
-            socialTitle.textContent = text;
-
-            socialTitle.style.color = color;
-
-            setTimeout(()=>{ socialTitle.textContent = 'Logar-se com'; socialTitle.style.color=''; }, ms);
-
-          }
-
-          document.querySelectorAll('.oauth').forEach(btn=>{
-
-            btn.addEventListener('click', ()=>{
-
-              const p = btn.dataset.provider;
-
-              if(!en[p]){
-
-                titleMsg('em implementação', errColor, errMs);
-
-              } else {
-
-                window.location.href = '/oauth/' + p;
-
-              }
-
-            });
-
-          });
-
-          if(!en.youtube && !en.tiktok && !en.github && !en.facebook){
-
-            titleMsg('em implementação', errColor, errMs);
-
-          }
-
-          // botão Entrar sem dança: troca texto por 1s/3s e depois navega
-
-          const form = document.getElementById('loginForm');
-
-          const btn = form.querySelector('button[type="submit"]');
-
-          form.addEventListener('submit', (e)=>{
-
-            e.preventDefault();
-
-            const pwd = form.querySelector('input[name="password"]').value || '';
-
-            const ok = pwd.length >= 4; // placeholder de validação
-
-            btn.disabled = true;
-
-            const original = btn.textContent;
-
-            if(ok){
-
-              btn.style.color = okColor; btn.textContent = 'Login efetuado com sucesso';
-
-              setTimeout(()=>{ window.location.href = '/home'; }, okMs);
-
-            } else {
-
-              btn.style.color = errColor; btn.textContent = 'Login FAILED - Try AGAIN';
-
-              setTimeout(()=>{ btn.disabled = false; btn.style.color=''; btn.textContent = original; }, errMs);
-
-            }
-
-          });
-
-        })();
-
-      </script>
-        <a class="oauth fb" data-provider="facebook" href="javascript:void(0)">
-
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12a10 10 0 1 0-11.6 9.9v-7h-2.4V12h2.4V9.8c0-2.4 1.4-3.8 3.6-3.8 1 0 2 .2 2 .2v2.3h-1.1c-1.1 0-1.5.7-1.5 1.5V12h2.6l-.4 2.9h-2.2v7A10 10 0 0 0 22 12z"/></svg>
-
-          Facebook
-
-        </a>
+        Não tem conta? <a href="/cadastro">Cadastre-se</a>
 
       </div>
 
+    </div>
+
+  </div>
 
 
+
+  <script>
+
+    (function(){
+
+      const cfgEl = document.getElementById('cfg');
+
+      const socialTitle = document.getElementById('socialTitle');
+
+      const okColor = cfgEl.dataset.successColor || '#22c55e';
+
+      const okMs = parseInt(cfgEl.dataset.successMs || '1000', 10);
+
+      const errColor = cfgEl.dataset.errorColor || '#ef4444';
+
+      const errMs = parseInt(cfgEl.dataset.errorMs || '3000', 10);
+
+
+
+      const en = {
+
+        youtube: cfgEl.dataset.youtube === '1',
+
+        tiktok:  cfgEl.dataset.tiktok === '1',
+
+        github:  cfgEl.dataset.github === '1',
+
+        facebook:cfgEl.dataset.facebook === '1',
+
+      };
+
+
+
+      function titleMsg(text, color, ms){
+
+        socialTitle.textContent = text;
+
+        socialTitle.style.color = color;
+
+        setTimeout(()=>{ socialTitle.textContent = 'Logar-se com'; socialTitle.style.color=''; }, ms);
+
+      }
+
+
+
+      document.querySelectorAll('.oauth').forEach(btn=>{
+
+        btn.addEventListener('click', ()=>{
+
+          const p = btn.dataset.provider;
+
+          if(!en[p]){
+
+            titleMsg('em implementação', errColor, errMs);
+
+          } else {
+
+            window.location.href = '/oauth/' + p;
+
+          }
+
+        });
+
+      });
+
+
+
+      if(!en.youtube && !en.tiktok && !en.github && !en.facebook){
+
+        titleMsg('em implementação', errColor, errMs);
+
+      }
+
+
+
+      // Botão Entrar: mensagem no próprio botão (sem "dança")
+
+      const form = document.getElementById('loginForm');
+
+      const btn = document.getElementById('loginBtn');
+
+      form.addEventListener('submit', (e)=>{
+
+        e.preventDefault();
+
+        const pwd = form.querySelector('input[name="password"]').value || '';
+
+        const ok = pwd.length >= 4; // placeholder
+
+        btn.disabled = true;
+
+        const original = btn.textContent;
+
+        if(ok){
+
+          btn.style.color = okColor; btn.textContent = 'Login efetuado com sucesso';
+
+          setTimeout(()=>{ window.location.href = '/home'; }, okMs);
+
+        } else {
+
+          btn.style.color = errColor; btn.textContent = 'Login FAILED - Try AGAIN';
+
+          setTimeout(()=>{ btn.disabled = false; btn.style.color=''; btn.textContent = original; }, errMs);
+
+        }
+
+      });
+
+    })();
+
+  </script>
+
+</body>
+
+</html>
       <div class="muted">
 
         Não tem conta? <a href="/cadastro">Cadastre-se</a>
