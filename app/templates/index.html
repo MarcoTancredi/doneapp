@@ -40,6 +40,16 @@
 
   </style>
 
+    .row{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+
+    .btn{ background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke); padding:10px 14px; border-radius:10px; cursor:pointer; text-decoration:none; box-shadow:0 0 14px rgba(125,249,255,.18);}
+
+    .btn:hover{ box-shadow:0 0 18px rgba(125,249,255,.3); }
+
+    .hint{ opacity:.85; font-size:13px; margin-top:8px; }
+
+  </style>
+
 </head>
 
 <body>
@@ -60,8 +70,37 @@
 
           <a class="btn" href="/updota?clear=1">Recarregar (limpar)</a>
 
+          <button class="btn" type="button" id="btnRestart">Reiniciar servidor</button>
+
           <a class="btn" href="/">Login</a>
 
+          <a class="btn" href="/cadastro">Cadastro</a>
+
+        </div>
+
+        <div class="hint">Ao salvar, o aplicador será executado automaticamente e a saída será exibida acima (substitui o conteúdo da caixa).</div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  <script>
+
+    document.getElementById('btnRestart').addEventListener('click', async ()=>{
+
+      const r = await fetch('/updota/restart', {method:'POST'});
+
+      alert(await r.text());
+
+    });
+
+  </script>
+
+</body>
+
+</html>
           <a class="btn" href="/cadastro">Cadastro</a>
 
         </div>
