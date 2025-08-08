@@ -1,0 +1,126 @@
+<!-- Ação: CRIAR/SUBSTITUIR -->
+<!-- Local: app/templates/updota.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Updota — Aplicar Patch</title>
+  <style>
+    :root {
+      --bg:#0b0f17; --panel:#0e1525; --neon:#00e5ff; --neon2:#7b61ff;
+      --ok:#2dd36f; --warn:#ff3b30; --txt:#e6f1ff; --muted:#9bb0c9;
+      --border: 1px solid rgba(255,255,255,0.12);
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:16px; background:#090d14; color:var(--txt); font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; }
+    .bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
+    .btn {
+      border:none; border-radius:12px; padding:10px 14px; cursor:pointer;
+      background: linear-gradient(90deg, var(--neon), var(--neon2)); color:#001018; font-weight:700;
+      box-shadow: 0 6px 20px rgba(0,229,255,0.25);
+    }
+    .btn.secondary { background:#101827; color:var(--txt); border:1px solid rgba(255,255,255,0.14); box-shadow:none; }
+    .btn.warn { background:#1c0f11; color:#ffdada; border:1px solid rgba(255,59,48,0.6); }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .col { display:flex; flex-direction:column; gap:8px; }
+    textarea {
+      min-height: 360px; width:100%;
+      background:#0c1220; border:1px solid rgba(255,255,255,0.1); border-radius:12px;
+      color:var(--txt); padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height:1.25; outline:none;
+    }
+    pre {
+      min-height:360px; margin:0; padding:10px; background:#0c1220; border:1px solid rgba(255,255,255,0.1); border-radius:12px;
+      overflow:auto; white-space:pre-wrap; word-break:break-word;
+    }
+    .meta { font-size:12px; color:var(--muted); margin-bottom:8px; }
+    .footer { display:flex; gap:8px; margin-top:10px; }
+    .flash { min-height:18px; font-size:12px; color:var(--muted); margin: 6px 0 0; }
+    .flash.ok { color: var(--ok); }
+    .flash.err { color: var(--warn); }
+    @media (max-width: 900px){
+      .grid { grid-template-columns: 1fr; }
+      textarea, pre { min-height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <button class="btn" id="btn-apply">Salvar patch & Aplicar</button>
+    <button class="btn secondary" id="btn-clear">Limpar</button>
+    <button class="btn warn" id="btn-restart">Reiniciar servidor</button>
+    <a class="btn secondary" href="/">Home</a>
+  </div>
+
+  <div class="meta">
+    <div><b>Repo:</b> {{ repo }}</div>
+    <div><b>Tools:</b> {{ tools }}</div>
+    <div><b>Inbox:</b> {{ inbox }}</div>
+    <div><b>Backups:</b> {{ backups }}</div>
+  </div>
+
+  <div class="grid">
+    <div class="col">
+      <label for="patchBox">Cole o patch aqui (Protocol.md):</label>
+      <textarea id="patchBox" placeholder="# Ação: ...&#10;# Local: ..."></textarea>
+      <div id="flashL" class="flash">{% if flash_ok %}{{ flash_ok }}{% endif %}</div>
+    </div>
+    <div class="col">
+      <label>Saída do aplicador:</label>
+      <pre id="output">{{ result if result else '' }}</pre>
+      <div id="flashR" class="flash"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = sel => document.querySelector(sel);
+    const patchBox = $('#patchBox');
+    const out = $('#output');
+    const flashL = $('#flashL');
+    const flashR = $('#flashR');
+
+    $('#btn-clear').addEventListener('click', () => {
+      patchBox.value = '';
+      flashL.className = 'flash';
+      flashL.textContent = '';
+    });
+
+    $('#btn-apply').addEventListener('click', async () => {
+      const data = new FormData();
+      data.append('patch', patchBox.value);
+      flashL.className = 'flash';
+      flashL.textContent = 'Aplicando patch...';
+      try {
+        const res = await fetch('/updota/apply', { method:'POST', body:data });
+        const html = await res.text();
+        // Substitui só a coluna direita (gambiarra simples: recarrega toda a página)
+        document.open(); document.write(html); document.close();
+      } catch (e) {
+        flashL.className = 'flash err';
+        flashL.textContent = 'Erro ao aplicar patch: ' + e;
+      }
+    });
+
+    $('#btn-restart').addEventListener('click', async () => {
+      flashR.className = 'flash';
+      flashR.textContent = 'Solicitando reinício...';
+      try {
+        const res = await fetch('/updota/restart', { method:'POST' });
+        const j = await res.json();
+        if (j.ok){
+          flashR.className = 'flash ok';
+          flashR.textContent = 'Reinício solicitado. Aguarde ~2s...';
+          setTimeout(()=>{ location.reload(); }, 2000);
+        } else {
+          flashR.className = 'flash err';
+          flashR.textContent = j.message || 'Falha ao reiniciar.';
+        }
+      } catch (e) {
+        flashR.className = 'flash err';
+        flashR.textContent = 'Erro: ' + e;
+      }
+    });
+  </script>
+</body>
+</html>

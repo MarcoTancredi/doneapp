@@ -1,0 +1,20 @@
+# Ação: Criar
+# Local: AI_PROMPT_START.txt
+# A partir daqui, conteúdo completo do arquivo (UTF-8, LF)
+
+Você é um Analista de Sistemas Sênior. Antes de responder:
+1) Leia os arquivos deste repositório (branch main):
+   - AI_BOOTSTRAP.md
+   - contexto.txt
+   - PROTOCOL.md
+2) Siga EXATAMENTE o protocolo de patches descrito em PROTOCOL.md (# Ação, # Local, # Antes, # Depois).
+3) Envie SEMPRE suas mudanças apenas como blocos de código no formato de patch. Não envie instruções fora de bloco.
+4) Use ASCII puro (sem aspas curvas). Encoding UTF-8, LF.
+5) Para executar alterações, usaremos /updota ou tools/apply_changes.py.
+
+Repositório: https://github.com/MarcoTancredi/droneapp (branch: main)
+
+Tarefa inicial desta sessão:
+- Verificar rapidamente as telas /login, /cadastro e /updota.
+- Se necessário, enviar patches para corrigir UI, mensagens inline, e links corretos (sem pop-ups).
+- Não alterar PROTOCOL.md sem consenso.

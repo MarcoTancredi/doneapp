@@ -1,130 +1,168 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Done — Login</title>
   <style>
     :root{
-      --bg1:#070b1a; --bg2:#0a0f1f; --neon:#00ffd5; --txt:#e8f6ff; --muted:#8aa6c1;
-      --ok:#1fff9f; --err:#ff4d6d;
+      --bg1:#0a0f1f; --bg2:#141a33;
+      --panel:#0f1430; --accent:#00e0ff; --accent2:#7cffb2;
+      --ok:#3ddc84; --err:#ff4d6d; --muted:#a7b0c0;
     }
     *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Arial;color:var(--txt);
-         background:radial-gradient(1200px 700px at 50% -10%, #102040 0%, #091226 55%, #050914 100%);}
-    .wrap{min-height:100svh;display:flex;justify-content:center;align-items:center;padding:24px}
+    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial}
+    body{
+      background: radial-gradient(1200px 800px at 80% -10%, rgba(0,224,255,.12), transparent 60%),
+                  radial-gradient(900px 600px at 10% 110%, rgba(124,255,178,.10), transparent 60%),
+                  linear-gradient(135deg,var(--bg1),var(--bg2));
+      display:flex;align-items:center;justify-content:center;padding:24px;
+    }
     .card{
-      width:min(420px,94vw);
-      background:linear-gradient(180deg, rgba(10,20,40,.92), rgba(8,16,32,.92));
-      border-radius:18px;padding:22px 20px 18px;
-      box-shadow:0 28px 80px rgba(0,255,213,.16), inset 0 0 0 1px rgba(0,255,213,.16);
-      backdrop-filter: blur(8px);
+      width:min(420px, 92vw);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(0,224,255,.25);
+      backdrop-filter: blur(10px);
+      border-radius:20px; padding:24px 22px;
+      box-shadow: 0 30px 80px rgba(0, 224, 255, .12), inset 0 0 0 1px rgba(255,255,255,.03);
+      position:relative;
     }
-    h1{font-size:22px;margin:4px 0 6px;letter-spacing:.4px}
-    .sub{font-size:12px;color:var(--muted);margin-bottom:10px}
-    label{display:block;font-size:12px;color:var(--muted);margin:8px 2px 6px}
+    .glow:before{
+      content:""; position:absolute; inset:-2px;
+      border-radius:22px; pointer-events:none;
+      box-shadow: 0 0 32px rgba(0,224,255,.18);
+    }
+    h1{margin:0 0 14px; font-size:22px; color:#e9f1ff; letter-spacing:.4px}
+    .sub{color:var(--muted); font-size:13px; margin-bottom:18px}
+    label{display:block; color:#d9e4ff; font-size:13px; margin:8px 2px 6px}
     input[type="text"], input[type="password"]{
-      width:100%;padding:12px 12px;border-radius:12px;border:1px solid rgba(0,255,213,.22);
-      background:rgba(4,10,22,.6);color:var(--txt);outline:none;
+      width:100%; background:#0d1228; color:#e6eeff;
+      border:1px solid rgba(0,224,255,.25);
+      border-radius:12px; padding:12px 12px; outline:none;
     }
-    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:10px}
-    .left{display:flex;gap:8px;align-items:center}
-    .chk{width:16px;height:16px;accent-color:var(--neon)}
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between; margin:10px 2px}
+    .row .left{display:flex; align-items:center; gap:8px; color:#c6d2e8; font-size:13px}
+    .row input[type="checkbox"]{transform:scale(1.1)}
     .btn{
-      width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(0,255,213,.35);
-      background:linear-gradient(180deg, rgba(0,255,213,.16), rgba(0,255,213,.08));
-      color:var(--txt);cursor:pointer;font-weight:600;letter-spacing:.3px;
+      width:100%; border:0; border-radius:12px; padding:12px 14px;
+      background: linear-gradient(90deg, var(--accent), #5de8cd);
+      color:#021014; font-weight:700; letter-spacing:.3px; cursor:pointer;
     }
-    .btn:hover{filter:brightness(1.1)}
-    .hint{height:18px; /* reserva espaço p/ não “dançar” */
-          font-size:12px;margin:8px 2px 2px;color:var(--muted)}
-    .status{height:20px;font-size:13px;margin:10px 2px 6px;opacity:.0;transition:.2s}
-    .status.show{opacity:1}
-    .status.ok{color:var(--ok)}
-    .status.err{color:var(--err)}
-    .divider{height:1px;background:linear-gradient(90deg, transparent, rgba(0,255,213,.35), transparent);margin:12px 0}
-    .logar{font-size:12px;color:var(--muted);margin:8px 2px 10px}
-    .sso{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-    .sso button{
-      padding:10px;border-radius:12px;border:1px solid rgba(0,255,213,.25);
-      background:rgba(4,10,22,.6);cursor:pointer;color:var(--txt)
+    .btn:active{transform:translateY(1px)}
+    .alt-title{
+      height:20px; /* reserva espaço das mensagens sem mexer no layout */
+      display:flex; align-items:center; justify-content:center;
+      color:#b9c5da; font-size:13px; margin:12px 0 10px;
+      transition: color .2s ease;
     }
-    .foot{display:flex;justify-content:space-between;font-size:12px;margin-top:12px}
-    a{color:#7fd8ff;text-decoration:none}
+    .alt-title.ok{ color: var(--ok) }
+    .alt-title.err{ color: var(--err) }
+    .oauth{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+    .oauth button{
+      background:#0d1228; border:1px solid rgba(255,255,255,.12);
+      border-radius:12px; padding:10px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .oauth button:hover{ border-color: rgba(0,224,255,.4) }
+    .footer{
+      display:flex; justify-content:center; gap:6px; margin-top:14px; font-size:13px; color:#c8d3ea
+    }
+    .footer a{ color: var(--accent2); text-decoration:none }
+    .brand{
+      position:absolute; right:12px; top:12px; color:#7bbfe2; font-size:12px;
+      opacity:.6
+    }
+    .hidden{display:none !important}
+    /* responsivo alto (9:16) */
+    @media (max-height:700px){
+      .card{ padding:18px 16px }
+      .oauth{ gap:8px }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card">
-      <h1>Bem-vindo</h1>
-      <div class="sub">Entre para continuar</div>
+  <div class="card glow">
+    <div class="brand">Done v0.1</div>
+    <h1>Entrar</h1>
+    <div class="sub">Acesse com seu usuário e senha, ou com uma rede social.</div>
 
-      <div id="status" class="status"></div>
+    <label for="user">User Name / e-mail</label>
+    <input id="user" type="text" autocomplete="username" placeholder="seu-usuario ou voce@dominio.com" />
 
-      <label>User Name / e-mail</label>
-      <input id="user" type="text" placeholder="ex: joao | joao@email.com" autocomplete="username"/>
+    <label for="pass">Senha</label>
+    <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••" />
 
-      <label>Senha</label>
-      <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password"/>
-
-      <div class="row">
-        <div class="left">
-          <input id="keep" class="chk" type="checkbox"/>
-          <label for="keep" style="margin:0;font-size:12px;">manter-me conectado</label>
-        </div>
-        <div><a href="/cadastro">Criar conta</a></div>
+    <div class="row">
+      <div class="left">
+        <input id="stay" type="checkbox" />
+        <label for="stay" style="margin:0">manter‑me conectado</label>
       </div>
-
-      <div class="hint" id="hint">Logar-se com</div>
-
-      <div class="sso">
-        <button onclick="sso('YouTube')">YouTube</button>
-        <button onclick="sso('TikTok')">TikTok</button>
-        <button onclick="sso('GitHub')">GitHub</button>
-        <button onclick="sso('Facebook')">Facebook</button>
+      <div class="right" style="font-size:12px; color:#9fb0cc">
+        <a href="#" style="color:#7cffb2; text-decoration:none" onclick="notif('Em breve'); return false;">Esqueci a senha</a>
       </div>
+    </div>
 
-      <div class="divider"></div>
+    <button class="btn" id="btnLogin">Entrar</button>
 
-      <button class="btn" onclick="login()">Entrar</button>
+    <div id="alt" class="alt-title">Logar‑se com</div>
 
-      <div class="foot">
-        <span></span>
-        <a href="/updota">/updota</a>
-      </div>
+    <div class="oauth">
+      <!-- YouTube -->
+      <button onclick="social('YouTube')"
+        aria-label="Login com YouTube" title="YouTube">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
+          <path d="M23.5 6.2a3.01 3.01 0 0 0-2.1-2.1C19.3 3.5 12 3.5 12 3.5s-7.3 0-9.4.6A3.01 3.01 0 0 0 .5 6.2C0 8.3 0 12 0 12s0 3.7.5 5.8a3.01 3.01 0 0 0 2.1 2.1c2.1.5 9.4.5 9.4.5s7.3 0 9.4-.5a3.01 3.01 0 0 0 2.1-2.1c.5-2.1.5-5.8.5-5.8s0-3.7-.5-5.8zM9.6 15.5v-7L16 12l-6.4 3.5z"/>
+        </svg>
+      </button>
+      <!-- TikTok -->
+      <button onclick="social('TikTok')" aria-label="Login com TikTok" title="TikTok">
+        <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#000" d="M0 0h48v48H0z" opacity=".0"/>
+          <path fill="#25F4EE" d="M34.9 14.9a13 13 0 0 1-5.1-3.6v17.4a8.7 8.7 0 1 1-7-8.5v5.3a3.5 3.5 0 1 0 2.5 3.3V5h4.6c1.1 3 2.8 5.2 5 6.8z"/>
+          <path fill="#FE2C55" d="M34.9 14.9c2.2 1.6 4.7 2.7 7.5 3v5a16 16 0 0 1-7.5-2.1v7.3a13.3 13.3 0 1 1-11.8-13v4.6a8.7 8.7 0 1 0 7 8.5V5h4.8c1.1 3 2.8 5.2 5 6.8-2.9-.2-5.4-1.3-7.5-3z"/>
+        </svg>
+      </button>
+      <!-- GitHub -->
+      <button onclick="social('GitHub')" aria-label="Login com GitHub" title="GitHub">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
+          <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.4-4-1.4-.6-1.4-1.5-1.8-1.5-1.8-1.2-.8.1-.8.1-.8 1.3.1 2 . 1.9 2.1 1.3 2.2 3.4 1.6 4.2 1.2.1-.9.5-1.6 1-2-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.3-.1-.3-.5-1.7.1-3.5 0 0 1-.3 3.4 1.2a11.8 11.8 0 0 1 6.2 0C16.7 5 17.7 5.3 17.7 5.3c.6 1.8.2 3.2.1 3.5.8.9 1.2 2 1.2 3.3 0 4.6-2.8 5.6-5.4 5.9.6.5 1.1 1.5 1.1 3v4.4c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/>
+        </svg>
+      </button>
+      <!-- Facebook -->
+      <button onclick="social('Facebook')" aria-label="Login com Facebook" title="Facebook">
+        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#1877F2" d="M24 12.07C24 5.4 18.6 0 11.93 0S-.14 5.4-.14 12.07C-.14 18.1 4.25 23.1 10 24v-8.4H7v-3.2h3V9.2c0-3 1.8-4.6 4.5-4.6 1.3 0 2.6.2 2.6.2v2.8h-1.5c-1.5 0-2 1-2 2v2.2h3.4l-.5 3.2H13V24c5.8-.9 10.1-5.9 10.1-11.93z"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="footer">
+      <span>Novo aqui?</span><a href="/cadastro">Cadastre‑se</a>
     </div>
   </div>
 
   <script>
-    const statusEl = document.getElementById('status');
-    const hintEl = document.getElementById('hint');
+    const alt = document.getElementById('alt');
+    const btnLogin = document.getElementById('btnLogin');
 
-    // Renderiza mensagem inicial (se veio via query)
-    (function seedFromQuery(){
-      const params = new URLSearchParams(window.location.search);
-      const msg = params.get('msg');
-      const ok  = params.get('ok');
-      if(msg){
-        showStatus(decodeURIComponent(msg), ok === '1' ? 'ok' : 'err', ok === '1' ? 1000 : 3000);
-      }
-    })();
+    function showMsg(text, cls, ms){
+      alt.textContent = text;
+      alt.classList.remove('ok','err');
+      if (cls) alt.classList.add(cls);
+      setTimeout(()=>{ alt.textContent = 'Logar‑se com'; alt.classList.remove('ok','err'); }, ms||1000);
+    }
+    function notif(text){ showMsg(text, 'ok', 1000); }
 
-    function showStatus(msg, kind='ok', ms=1000){
-      statusEl.textContent = msg;
-      statusEl.className = 'status show ' + (kind === 'ok' ? 'ok':'err');
-      setTimeout(() => { statusEl.className = 'status'; }, ms);
+    function social(name){
+      showMsg(name+' — em implementação', 'err', 3000);
     }
 
-    function sso(provider){
-      hintEl.textContent = 'Em implementação';
-      showStatus(`Login por ${provider}: em implementação`, 'err', 3000);
-    }
-
-    function login(){
-      // Simula sucesso por enquanto e redireciona após 1s:
-      showStatus('Login efetuado com sucesso', 'ok', 1000);
-      setTimeout(()=>{ window.location.href = '/home'; }, 1000);
-    }
+    btnLogin.addEventListener('click', (e)=>{
+      e.preventDefault();
+      // mock sucesso
+      showMsg('Login efetuado com sucesso', 'ok', 1000);
+      setTimeout(()=>{ window.location.href='/home'; }, 1000);
+    });
   </script>
 </body>
 </html>
