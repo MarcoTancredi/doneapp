@@ -1,0 +1,107 @@
+<!doctype html>
+
+<html lang="pt-br">
+
+<head>
+
+  <meta charset="utf-8">
+
+  <title>Done — Login</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+
+    :root{ --bg:#0e0e10; --panel:#141421; --panel2:#0b0b13; --stroke:#29293c; --accent:#7df9ff; --text:#e4e4e7; }
+
+    *{ box-sizing:border-box }
+
+    body{ background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+
+          margin:0; padding:16px; display:flex; min-height:100dvh; justify-content:center; }
+
+    .wrap{ width:100%; max-width:420px; }
+
+    h1{ margin:0 0 10px; font-size:24px; text-align:center; color:var(--accent); text-shadow:0 0 8px rgba(125,249,255,.3); }
+
+    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:14px;
+
+           box-shadow:0 0 20px rgba(0,255,255,.08); }
+
+    label{ display:block; margin:6px 0 4px; font-weight:600; font-size:14px; }
+
+    input[type="text"], input[type="email"], input[type="password"]{
+
+      width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--stroke); border-radius:10px;
+
+      padding:8px 10px; font-size:14px; line-height:1.25;
+
+    }
+
+    .btn{ width:100%; background:#1a1b2e; color:var(--accent); border:1px solid var(--stroke);
+
+          padding:10px 12px; border-radius:10px; font-weight:700; font-size:14px; margin-top:10px; cursor:pointer; }
+
+    .btn:hover{ box-shadow:0 0 14px rgba(125,249,255,.24); }
+
+    .or{ text-align:center; opacity:.75; margin:8px 0; font-size:12px; }
+
+    .row{ display:flex; gap:8px; margin-top:10px; }
+
+    .oauth{ flex:1; text-align:center; text-decoration:none; color:var(--accent); border:1px solid var(--stroke);
+
+            border-radius:10px; padding:8px 10px; background:#11111b; font-size:14px; }
+
+    .muted{ text-align:center; margin-top:10px; font-size:13px; opacity:.8; }
+
+    a{ color:var(--accent); text-decoration:none; }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="wrap">
+
+    <h1>Social Master</h1>
+
+    <div class="card">
+
+      <form method="post" action="/login">
+
+        <label>E-mail</label>
+
+        <input type="email" name="email" placeholder="email@exemplo.com" required>
+
+        <label>Senha</label>
+
+        <input type="password" name="password" placeholder="Senha" required>
+
+        <button class="btn" type="submit">Entrar</button>
+
+      </form>
+
+      <div class="or">ou</div>
+
+      <div class="row">
+
+        <a class="oauth" href="/oauth/youtube">YouTube</a>
+
+        <a class="oauth" href="/oauth/github">GitHub</a>
+
+      </div>
+
+      <div class="muted">
+
+        Não tem conta? <a href="/cadastro">Cadastre-se</a>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</body>
+
+</html>
