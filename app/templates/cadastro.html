@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Done — Cadastro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background:#0e0e10; color:#e4e4e7; font-family:system-ui, sans-serif; margin:0; padding:24px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .card { background:#151521; border:1px solid #272738; border-radius:16px; padding:20px; box-shadow:0 0 24px rgba(0,255,255,0.08); }
+    h1 { color:#7df9ff; text-shadow:0 0 8px rgba(0,255,255,0.4); margin: 0 0 16px; }
+    label { display:block; margin:10px 0 6px; }
+    input[type="text"], input[type="email"] {
+      width:100%; background:#0b0b13; color:#e4e4e7; border:1px solid #2a2a3b; border-radius:10px; padding:10px;
+    }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    .checks { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:8px; margin-top:12px; }
+    .check-item { background:#0b0b13; border:1px solid #2a2a3b; padding:8px; border-radius:10px; display:flex; align-items:center; gap:8px; }
+    .btn { margin-top:16px; background:#1a1b2e; color:#7df9ff; border:1px solid #2a2a3b; padding:10px 16px; border-radius:10px; cursor:pointer; }
+    .btn:hover { box-shadow:0 0 16px rgba(125,249,255,0.3); }
+    a { color:#7df9ff; text-decoration:none; }
+    .row { display:flex; gap:12px; margin-top:12px; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cadastro</h1>
+    <div class="card">
+      <form method="post" action="/cadastro">
+        <div class="grid">
+          <div>
+            <label>Usuário</label>
+            <input type="text" name="user" required>
+          </div>
+          <div>
+            <label>E-mail</label>
+            <input type="email" name="email" required>
+          </div>
+          <div>
+            <label>Telefone</label>
+            <input type="text" name="phone" placeholder="+55 11 99999-9999">
+          </div>
+          <div>
+            <label>Empresa</label>
+            <input type="text" name="company">
+          </div>
+        </div>
+
+        <div style="margin-top:16px; font-weight:600;">Autenticações (campo <code>class</code>)</div>
+        <div class="checks">
+          <label class="check-item"><input type="checkbox" name="auth_email" value="1"> E-mail</label>
+          <label class="check-item"><input type="checkbox" name="auth_sms" value="1"> SMS</label>
+          <label class="check-item"><input type="checkbox" name="auth_whatsapp" value="1"> WhatsApp</label>
+          <label class="check-item"><input type="checkbox" name="auth_phone" value="1"> Phone</label>
+          <label class="check-item"><input type="checkbox" name="auth_admin" value="1"> Concessão via adm</label>
+        </div>
+
+        <div class="row">
+          <button class="btn" type="submit">Enviar</button>
+          <a href="/" class="btn">Voltar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
