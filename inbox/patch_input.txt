@@ -1,0 +1,20 @@
+# Ação: Modificar
+# Local: tools/apply_changes.py
+# Contexto Antes (5 linhas anteriores à modificação):
+from pathlib import Path
+
+ENC = “utf-8”
+
+HEADER_RE = re.compile(r"^# Ação:\s*(.+)$", re.MULTILINE)
+LOCAL_RE = re.compile(r"^# Local:\s*(.+)$", re.MULTILINE)
+
+# Contexto Depois (5 linhas posteriores à modificação):
+HEADER_RE = re.compile(r"^# Ação:\s*(.+)$", re.MULTILINE)
+LOCAL_RE = re.compile(r"^# Local:\s*(.+)$", re.MULTILINE)
+
+def read_text(p: Path) -> str:
+    return p.read_text(encoding=ENC) if p.exists() else ""
+# Novo Código:
+from pathlib import Path
+
+ENC = "utf-8"
