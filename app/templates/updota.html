@@ -1,125 +1,115 @@
-<!-- Ação: CRIAR/SUBSTITUIR -->
-<!-- Local: app/templates/updota.html -->
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Updota — Aplicar Patch</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>updota</title>
   <style>
     :root {
-      --bg:#0b0f17; --panel:#0e1525; --neon:#00e5ff; --neon2:#7b61ff;
-      --ok:#2dd36f; --warn:#ff3b30; --txt:#e6f1ff; --muted:#9bb0c9;
-      --border: 1px solid rgba(255,255,255,0.12);
+      --bg: #0b0f1a;
+      --panel: #0f1526;
+      --accent: #7c3aed;
+      --accent-2: #22d3ee;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --btn: #111827;
     }
-    * { box-sizing: border-box; }
-    body { margin:0; padding:16px; background:#090d14; color:var(--txt); font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; }
-    .bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; align-items:center; }
-    .btn {
-      border:none; border-radius:12px; padding:10px 14px; cursor:pointer;
-      background: linear-gradient(90deg, var(--neon), var(--neon2)); color:#001018; font-weight:700;
-      box-shadow: 0 6px 20px rgba(0,229,255,0.25);
+    body {
+      margin: 0; background: radial-gradient(1200px 600px at 10% 0%, #101638 0%, #0b0f1a 60%);
+      color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
-    .btn.secondary { background:#101827; color:var(--txt); border:1px solid rgba(255,255,255,0.14); box-shadow:none; }
-    .btn.warn { background:#1c0f11; color:#ffdada; border:1px solid rgba(255,59,48,0.6); }
-    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .col { display:flex; flex-direction:column; gap:8px; }
+    .wrap {
+      max-width: 760px; margin: 24px auto; padding: 0 16px;
+    }
+    .hdr {
+      display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;
+    }
+    .hdr a { color: var(--accent-2); text-decoration: none; font-weight: 600; }
+    .card {
+      background: linear-gradient(180deg, rgba(124,58,237,0.08), rgba(34,211,238,0.06));
+      border: 1px solid rgba(124,58,237,0.25);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 40px rgba(124,58,237,.06);
+    }
+    .row { display:flex; align-items:center; gap:8px; flex-wrap: wrap; }
+    .status {
+      white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: rgba(17,24,39,.6); border: 1px solid rgba(255,255,255,.08);
+      padding: 8px 10px; border-radius: 10px; color: #cbd5e1;
+    }
     textarea {
-      min-height: 360px; width:100%;
-      background:#0c1220; border:1px solid rgba(255,255,255,0.1); border-radius:12px;
-      color:var(--txt); padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      line-height:1.25; outline:none;
+      width: 100%; min-height: 320px; resize: vertical;
+      background: #0b1224; color: var(--text);
+      border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+      padding: 12px 14px; font-size: 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      box-shadow: inset 0 0 40px rgba(124,58,237,.06);
     }
-    pre {
-      min-height:360px; margin:0; padding:10px; background:#0c1220; border:1px solid rgba(255,255,255,0.1); border-radius:12px;
-      overflow:auto; white-space:pre-wrap; word-break:break-word;
+    .btn {
+      appearance: none; border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(124,58,237,.20), rgba(124,58,237,.04));
+      color: var(--text); padding: 10px 14px; border-radius: 12px; cursor: pointer;
+      font-weight: 600; letter-spacing:.2px;
     }
-    .meta { font-size:12px; color:var(--muted); margin-bottom:8px; }
-    .footer { display:flex; gap:8px; margin-top:10px; }
-    .flash { min-height:18px; font-size:12px; color:var(--muted); margin: 6px 0 0; }
-    .flash.ok { color: var(--ok); }
-    .flash.err { color: var(--warn); }
-    @media (max-width: 900px){
-      .grid { grid-template-columns: 1fr; }
-      textarea, pre { min-height: 260px; }
-    }
+    .btn:hover { filter: brightness(1.06); }
+    .btn.secondary { background: linear-gradient(180deg, rgba(34,211,238,.20), rgba(34,211,238,.04)); }
+    .btn.danger { background: linear-gradient(180deg, rgba(239,68,68,.20), rgba(239,68,68,.06)); border-color: rgba(239,68,68,.45); }
+    .btn.ok { background: linear-gradient(180deg, rgba(16,185,129,.20), rgba(16,185,129,.06)); border-color: rgba(16,185,129,.45); }
+    .muted { color: var(--muted); font-size: 12px; }
+    .bar { display:flex; gap:8px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
-  <div class="bar">
-    <button class="btn" id="btn-apply">Salvar patch & Aplicar</button>
-    <button class="btn secondary" id="btn-clear">Limpar</button>
-    <button class="btn warn" id="btn-restart">Reiniciar servidor</button>
-    <a class="btn secondary" href="/">Home</a>
-  </div>
-
-  <div class="meta">
-    <div><b>Repo:</b> {{ repo }}</div>
-    <div><b>Tools:</b> {{ tools }}</div>
-    <div><b>Inbox:</b> {{ inbox }}</div>
-    <div><b>Backups:</b> {{ backups }}</div>
-  </div>
-
-  <div class="grid">
-    <div class="col">
-      <label for="patchBox">Cole o patch aqui (Protocol.md):</label>
-      <textarea id="patchBox" placeholder="# Ação: ...&#10;# Local: ..."></textarea>
-      <div id="flashL" class="flash">{% if flash_ok %}{{ flash_ok }}{% endif %}</div>
+  <div class="wrap">
+    <div class="hdr">
+      <h2 style="margin:0">updota</h2>
+      <nav class="row">
+        <a href="/">Home</a>
+      </nav>
     </div>
-    <div class="col">
-      <label>Saída do aplicador:</label>
-      <pre id="output">{{ result if result else '' }}</pre>
-      <div id="flashR" class="flash"></div>
+
+    {% if status_msg %}
+      <div class="card" style="margin-bottom:12px;">
+        <div class="status">{{ status_msg }}</div>
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <form method="post" action="/updota">
+        <textarea name="script" placeholder="# Ação: Criar&#10;# Local: AI_PROMPT_X.txt&#10;# A partir daqui, conteúdo completo do arquivo (UTF-8, LF)&#10;&#10;...">{{ script or "" }}</textarea>
+
+        <div class="bar" style="margin-top:12px;">
+          <button class="btn ok" type="submit" name="op" value="save_apply">Salvar + Aplicar</button>
+          <button class="btn secondary" type="submit" name="op" value="clear">Limpar</button>
+          <button class="btn" type="submit" name="op" value="commit_changes">Commit Changes</button>
+
+          <!-- Reiniciar/Parar via fetch POST para evitar GET acidental -->
+          <button class="btn" id="btnRestart" type="button">Restart Server</button>
+          <button class="btn danger" id="btnStop" type="button">Stop Server</button>
+        </div>
+
+        {% if last_summary %}
+          <div class="muted" style="margin-top:8px;">Última ação: {{ last_summary }}</div>
+        {% endif %}
+      </form>
     </div>
   </div>
 
   <script>
-    const $ = sel => document.querySelector(sel);
-    const patchBox = $('#patchBox');
-    const out = $('#output');
-    const flashL = $('#flashL');
-    const flashR = $('#flashR');
-
-    $('#btn-clear').addEventListener('click', () => {
-      patchBox.value = '';
-      flashL.className = 'flash';
-      flashL.textContent = '';
+    async function postJSON(url) {
+      const r = await fetch(url, {method: "POST", headers: {"Content-Type":"application/json"}, body: "{}"});
+      try { return await r.json(); } catch { return {ok:false, msg:"Sem JSON"}; }
+    }
+    document.getElementById("btnRestart").addEventListener("click", async () => {
+      const r = await postJSON("/admin/restart");
+      alert(r.msg || "Restart acionado.");
+      // não recarrega automaticamente; você decide se quer atualizar a página
     });
-
-    $('#btn-apply').addEventListener('click', async () => {
-      const data = new FormData();
-      data.append('patch', patchBox.value);
-      flashL.className = 'flash';
-      flashL.textContent = 'Aplicando patch...';
-      try {
-        const res = await fetch('/updota/apply', { method:'POST', body:data });
-        const html = await res.text();
-        // Substitui só a coluna direita (gambiarra simples: recarrega toda a página)
-        document.open(); document.write(html); document.close();
-      } catch (e) {
-        flashL.className = 'flash err';
-        flashL.textContent = 'Erro ao aplicar patch: ' + e;
-      }
-    });
-
-    $('#btn-restart').addEventListener('click', async () => {
-      flashR.className = 'flash';
-      flashR.textContent = 'Solicitando reinício...';
-      try {
-        const res = await fetch('/updota/restart', { method:'POST' });
-        const j = await res.json();
-        if (j.ok){
-          flashR.className = 'flash ok';
-          flashR.textContent = 'Reinício solicitado. Aguarde ~2s...';
-          setTimeout(()=>{ location.reload(); }, 2000);
-        } else {
-          flashR.className = 'flash err';
-          flashR.textContent = j.message || 'Falha ao reiniciar.';
-        }
-      } catch (e) {
-        flashR.className = 'flash err';
-        flashR.textContent = 'Erro: ' + e;
-      }
+    document.getElementById("btnStop").addEventListener("click", async () => {
+      const r = await postJSON("/admin/stop");
+      alert(r.msg || "Stop acionado.");
     });
   </script>
 </body>

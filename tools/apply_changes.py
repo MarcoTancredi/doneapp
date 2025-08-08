@@ -1,250 +1,97 @@
+#!/usr/bin/env python3
 import argparse
-import datetime as dt
-import hashlib
-import os
 import re
-import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 ENC = "utf-8"
 
-HEADER_RE = re.compile(r"^# Ação:\s*(.+)$", re.MULTILINE)
-LOCAL_RE = re.compile(r"^# Local:\s*(.+)$", re.MULTILINE)
+HEADER_RE = re.compile(r"^#\s*A[cç]ão:\s*(.+)$", re.MULTILINE | re.IGNORECASE)
+LOCAL_RE  = re.compile(r"^#\s*Local:\s*(.+)$", re.MULTILINE | re.IGNORECASE)
+
+# Marcador para conteúdo completo
+FULL_CONTENT_RE = re.compile(
+    r"^#\s*A partir daqui,\s*conte[úu]do completo do arquivo.*?$",
+    re.IGNORECASE | re.MULTILINE
+)
+
+# Bloco Antes/Depois
+ANTES_RE = re.compile(r"^#\s*Antes:\s*$", re.IGNORECASE | re.MULTILINE)
+DEPOIS_RE = re.compile(r"^#\s*Depois:\s*$", re.IGNORECASE | re.MULTILINE)
 
 def read_text(p: Path) -> str:
-    return p.read_text(encoding=ENC) if p.exists() else ""
+    return p.read_text(encoding=ENC, errors="replace") if p.exists() else ""
 
-def write_text(p: Path, content: str):
+def write_text(p: Path, content: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(content, encoding=ENC)
+    # força LF
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    p.write_text(content, encoding=ENC, newline="\n")
 
-def now_stamp():
-    return dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-
-def sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()[:12]
-
-def backup_file(src: Path, backups_root: Path) -> Path:
-    ts = now_stamp()
-    folder = backups_root / ts
-    folder.mkdir(parents=True, exist_ok=True)
-    dst = folder / src.as_posix().replace("/", "__")
-    if src.exists():
-        shutil.copy2(src, dst)
-    return dst
-
-def git_available() -> bool:
-    try:
-        subprocess.run(["git", "--version"], capture_output=True, check=True)
-        return True
-    except Exception:
-        return False
-
-def git_commit(files, msg: str):
-    if not git_available():
-        return
-    try:
-        subprocess.run(["git", "add", *[str(f) for f in files]], check=True)
-        subprocess.run(["git", "commit", "-m", msg], check=True)
-    except subprocess.CalledProcessError:
-        # Sem problemas se não houver mudanças a commitar
-        pass
-
-def extract_blocks(raw: str):
-    """
-    Divide a entrada em blocos, cada um começando por '# Ação:' e contendo '# Local:'.
-    """
-    blocks = []
-    for match in HEADER_RE.finditer(raw):
-        start = match.start()
-        next_match = HEADER_RE.search(raw, match.end())
-        end = next_match.start() if next_match else len(raw)
-        block_text = raw[start:end].strip()
-        if LOCAL_RE.search(block_text):
-            blocks.append(block_text)
-    return blocks
-
-def get_field(block: str, label: str) -> str:
-    pattern = re.compile(rf"^# {label}:\s*(.+)$", re.MULTILINE)
-    m = pattern.search(block)
+def apply_full_content(local: Path, patch: str) -> None:
+    # Captura tudo após a linha "A partir daqui, conteúdo completo do arquivo..."
+    m = FULL_CONTENT_RE.search(patch)
     if not m:
-        raise ValueError(f"Campo obrigatório ausente: # {label}:")
-    return m.group(1).strip()
-
-def get_section(block: str, title: str) -> str:
-    """
-    Retorna o texto após a linha '# {title}:' até a próxima linha que comece por '# ' ou fim do bloco.
-    """
-    header = re.compile(rf"^# {re.escape(title)}:\s*$", re.MULTILINE)
-    m = header.search(block)
-    if not m:
-        return ""
+        raise RuntimeError("Marcador de conteúdo completo não encontrado.")
     start = m.end()
-    next_marker = re.compile(r"^# [A-ZÁ-Úa-zá-ú].*?:", re.MULTILINE).search(block, start)
-    end = next_marker.start() if next_marker else len(block)
-    return block[start:end].lstrip("\r\n")
+    content = patch[start:].lstrip("\n")
+    # NÃO escrever arquivo vazio por engano:
+    if content.strip() == "":
+        raise RuntimeError("Conteúdo após o marcador está vazio.")
+    write_text(local, content)
 
-def ensure_repo_root():
-    # roda no diretório atual do projeto
-    return Path.cwd()
+def apply_antes_depois(local: Path, patch: str) -> None:
+    # Divide em seções
+    m_antes = ANTES_RE.search(patch)
+    m_depois = DEPOIS_RE.search(patch)
+    if not m_antes or not m_depois or m_depois.end() <= m_antes.end():
+        raise RuntimeError("Blocos # Antes / # Depois inválidos ou ausentes.")
+    antes = patch[m_antes.end():m_depois.start()].lstrip("\n")
+    depois = patch[m_depois.end():].lstrip("\n")
 
-def apply_create(local_path: Path, full_code: str, backups_root: Path):
-    if local_path.exists():
-        backup_file(local_path, backups_root)
-    write_text(local_path, full_code)
-
-def find_with_context(haystack: str, context_lines: list[str]) -> int:
-    """
-    Procura o bloco de contexto (linhas exatas) dentro do haystack e retorna o índice inicial do match.
-    """
-    context_str = "\n".join(context_lines).rstrip("\n")
-    return haystack.find(context_str)
-
-def apply_include(local_path: Path, ctx_before: str, to_include: str, backups_root: Path):
-    if not local_path.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado para inclusão: {local_path}")
-    original = read_text(local_path)
-    before_lines = [l.rstrip("\n") for l in ctx_before.splitlines()]
-    idx = find_with_context(original, before_lines)
-    if idx < 0:
-        raise ValueError(f"Contexto Anterior não encontrado em {local_path}")
-    insert_pos = idx + len("\n".join(before_lines))
-    needs_nl = False
-    if insert_pos < len(original) and original[insert_pos] != "\n":
-        needs_nl = True
-    backup_file(local_path, backups_root)
-    new_content = original[:insert_pos] + ("\n" if not needs_nl else "") + to_include + original[insert_pos:]
-    write_text(local_path, new_content)
-
-def apply_modify(local_path: Path, ctx_before: str, ctx_after: str, new_code: str, backups_root: Path):
-    if not local_path.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado para modificação: {local_path}")
-    original = read_text(local_path)
-    before_lines = [l.rstrip("\n") for l in ctx_before.splitlines()]
-    after_lines  = [l.rstrip("\n") for l in ctx_after.splitlines()]
-
-    idx_before = find_with_context(original, before_lines)
-    if idx_before < 0:
-        raise ValueError(f"Contexto Antes não encontrado em {local_path}")
-
-    start_of_replacement = idx_before + len("\n".join(before_lines))
-    remaining = original[start_of_replacement:]
-    idx_after_rel = find_with_context(remaining, after_lines)
-    if idx_after_rel < 0:
-        raise ValueError(f"Contexto Depois não encontrado em {local_path}")
-
-    end_of_replacement = start_of_replacement + idx_after_rel
-
-    backup_file(local_path, backups_root)
-    new_content = (
-        original[:start_of_replacement]
-        + "\n"
-        + new_code.rstrip("\n")
-        + "\n"
-        + original[end_of_replacement:]
-    )
-    write_text(local_path, new_content)
-
-def apply_system(op: str, target: str, backups_root: Path):
-    p = Path(target)
-    if op == "CriarDiretorio":
-        p.mkdir(parents=True, exist_ok=True)
-    elif op == "DeletarDiretorio":
-        if p.exists():
-            backup_dir = backups_root / f"dir_{p.as_posix().replace('/','__')}_{now_stamp()}"
-            shutil.make_archive(str(backup_dir), "zip", p)
-            shutil.rmtree(p)
-    elif op == "DeletarArquivo":
-        if p.exists():
-            backup_file(p, backups_root)
-            p.unlink()
-    else:
-        raise ValueError(f"Operação de sistema desconhecida: {op}")
-
-def process_block(block: str, repo_root: Path, backups_root: Path) -> list[Path]:
-    changed = []
-    acao = get_field(block, "Ação")
-    if acao.lower().startswith("criar"):
-        local = get_field(block, "Local")
-        code = get_section(block, "Código Completo")
-        fp = repo_root / local
-        apply_create(fp, code, backups_root)
-        changed.append(fp)
-        msg = f"Criar: {local}"
-    elif acao.lower().startswith("incluir"):
-        local = get_field(block, "Local")
-        ctx_before = get_section(block, "Contexto Anterior (5 linhas antes da inclusão)")
-        code_inc = get_section(block, "Código a Incluir")
-        fp = repo_root / local
-        apply_include(fp, ctx_before, code_inc, backups_root)
-        changed.append(fp)
-        msg = f"Incluir em: {local}"
-    elif acao.lower().startswith("modificar"):
-        local = get_field(block, "Local")
-        ctx_before = get_section(block, "Contexto Antes (5 linhas anteriores à modificação)")
-        ctx_after  = get_section(block, "Contexto Depois (5 linhas posteriores à modificação)")
-        new_code   = get_section(block, "Novo Código")
-        fp = repo_root / local
-        apply_modify(fp, ctx_before, ctx_after, new_code, backups_root)
-        changed.append(fp)
-        msg = f"Modificar: {local}"
-    elif acao.lower().startswith("sistema"):
-        op = get_field(block, "Operação")
-        target = get_field(block, "Alvo")
-        apply_system(op, target, backups_root)
-        msg = f"Sistema: {op} -> {target}"
-    else:
-        raise ValueError(f"Ação desconhecida: {acao}")
-
-    git_commit(changed, f"[apply_changes] {msg}")
-    return changed
+    original = read_text(local)
+    if antes not in original:
+        raise RuntimeError("Contexto Antes não encontrado no arquivo alvo.")
+    new_content = original.replace(antes, depois)
+    write_text(local, new_content)
 
 def main():
-    ap = argparse.ArgumentParser(description="Aplicador de mudanças a partir do protocolo do Projeto Done.")
-    ap.add_argument("--input", "-i", default="inbox/patch_input.txt", help="Arquivo de entrada copiado do chat")
-    ap.add_argument("--repo", "-r", default=".", help="Raiz do projeto (repositório)")
-    ap.add_argument("--backups", "-b", default=".backups", help="Diretório de backups")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--input", required=True, help="Caminho do patch_input.txt")
     args = ap.parse_args()
 
-    repo_root = Path(args.repo).resolve()
-    backups_root = (repo_root / args.backups).resolve()
-    input_path = (repo_root / args.input).resolve()
+    inbox = Path(args.input)
+    patch = read_text(inbox)
+    if not patch.strip():
+        print("[ERRO] patch_input.txt está vazio.")
+        raise SystemExit(2)
 
-    if not input_path.exists():
-        print(f"[ERRO] Arquivo de entrada não encontrado: {input_path}")
-        sys.exit(1)
+    m_action = HEADER_RE.search(patch)
+    m_local  = LOCAL_RE.search(patch)
+    if not m_action or not m_local:
+        print("[ERRO] Cabeçalho inválido. Use '# Ação:' e '# Local:'.")
+        raise SystemExit(2)
 
-    raw = read_text(input_path)
-    blocks = extract_blocks(raw)
-    if not blocks:
-        print("[ERRO] Nenhum bloco válido encontrado (# Ação / # Local).")
-        sys.exit(2)
+    action = m_action.group(1).strip().lower()
+    local_rel = m_local.group(1).strip()
+    target = Path(local_rel)
 
-    changed_all = []
-    errors = []
-    for idx, block in enumerate(blocks, start=1):
-        try:
-            changed = process_block(block, repo_root, backups_root)
-            changed_all.extend(changed)
-            print(f"[OK] Bloco {idx} aplicado.")
-        except Exception as e:
-            errors.append((idx, str(e)))
-            print(f"[FALHA] Bloco {idx}: {e}")
-
-    if errors:
-        print("\nResumo de falhas:")
-        for n, msg in errors:
-            print(f" - Bloco {n}: {msg}")
-        sys.exit(3)
-
-    uniq = sorted({str(p.relative_to(repo_root)) for p in changed_all})
-    if uniq:
-        print("\nArquivos alterados/criados:")
-        for f in uniq:
-            print(f" - {f}")
-    print("\nConcluído com sucesso.")
+    try:
+        if "criar" in action or "create" in action:
+            apply_full_content(target, patch)
+            print(f"[OK] Criado: {target}")
+        elif "substituir" in action or "replace" in action:
+            apply_full_content(target, patch)
+            print(f"[OK] Substituído: {target}")
+        elif "editar" in action or "update" in action or "alterar" in action or "modificar" in action:
+            apply_antes_depois(target, patch)
+            print(f"[OK] Editado: {target}")
+        else:
+            # fallback: tenta full-content
+            apply_full_content(target, patch)
+            print(f"[OK] Aplicado (full): {target}")
+    except Exception as e:
+        print(f"[FALHA] {e}")
+        raise SystemExit(1)
 
 if __name__ == "__main__":
     main()

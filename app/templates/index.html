@@ -1,64 +1,139 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Done — Updota</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>updota</title>
   <style>
-    :root{--bg:#0a0f1f; --neon:#00ffd5; --txt:#e8f6ff; --muted:#8aa6c1}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,system-ui,Arial;color:var(--txt);
-         background:radial-gradient(1200px 700px at 50% -10%, #102040 0%, #091226 55%, #050914 100%);}
-    .wrap{min-height:100svh;display:flex;justify-content:center;align-items:center;padding:24px}
-    .card{width:min(980px,95vw);background:linear-gradient(180deg, rgba(10,20,40,.92), rgba(8,16,32,.92));
-          border-radius:18px;padding:18px;border:1px solid rgba(0,255,213,.16);
-          box-shadow:0 28px 80px rgba(0,255,213,.16), inset 0 0 0 1px rgba(0,255,213,.16);
-          backdrop-filter: blur(8px);}
-    textarea{width:100%;min-height:42vh;border-radius:12px;padding:12px;border:1px solid rgba(0,255,213,.25);
-             background:rgba(5,12,24,.6);color:var(--txt);font-family:ui-monospace,Consolas,monospace;font-size:13px}
-    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(0,255,213,.35);
-           background:linear-gradient(180deg, rgba(0,255,213,.16), rgba(0,255,213,.08));
-           color:var(--txt);cursor:pointer}
-    pre{white-space:pre-wrap;background:rgba(5,12,24,.65);border:1px solid rgba(0,255,213,.2);
-        border-radius:12px;padding:12px;max-height:36vh;overflow:auto}
-    .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    h1{font-size:18px;margin:0 0 8px}
+    :root {
+      --bg: #0b0f17;
+      --card: #121826;
+      --text: #e6f0ff;
+      --muted: #8aa3c7;
+      --accent: #00e0ff;
+      --accent-2: #7cffd4;
+      --danger: #ff4d6d;
+    }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial; }
+    a { color: var(--accent-2); text-decoration: none; }
+    .wrap { max-width: 880px; margin: 24px auto; padding: 0 12px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+    .chip { background: linear-gradient(90deg, rgba(0,224,255,.15), rgba(124,255,212,.15)); color: var(--text); padding: 6px 10px; border: 1px solid rgba(124,255,212,.25); border-radius: 999px; font-size: 12px; }
+    .card { background: var(--card); border: 1px solid rgba(124,255,212,.15); border-radius: 14px; padding: 14px; box-shadow: 0 0 18px rgba(0,224,255,.06), inset 0 0 30px rgba(0,224,255,.03); }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
+    .row + .row { margin-top: 10px; }
+    .btn { cursor:pointer; border:1px solid rgba(124,255,212,.3); background: linear-gradient(180deg, rgba(0,224,255,.18), rgba(0,224,255,.06)); color:var(--text); padding:8px 12px; border-radius:10px; font-weight:600; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.danger { border-color: rgba(255,77,109,.5); background: linear-gradient(180deg, rgba(255,77,109,.2), rgba(255,77,109,.08)); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    textarea { width:100%; height: 52vh; resize: vertical; background:#0d1320; color:var(--text); border:1px solid rgba(124,255,212,.25); border-radius:10px; padding:12px; }
+    .status { font-size: 13px; color: var(--muted); }
+    .hl { color: var(--accent-2); }
+    .muted { color: var(--muted); }
+    .divider { height:1px; background: rgba(124,255,212,.15); margin: 12px 0; }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="topbar">
+      <div class="chip">updota</div>
+      <div><a href="/">Home</a></div>
+    </div>
+
     <div class="card">
-      <h1>/updota — aplicar patches</h1>
-      <form method="post" action="/updota">
-        <textarea name="patch" id="patch" placeholder="# Cole seus blocos aqui…"></textarea>
-        <div class="row">
-          <button type="button" onclick="clearBox()">Limpar</button>
-          <button type="submit">Salvar Patch e Aplicar</button>
-          <button type="button" onclick="reloadServer()">Recarregar servidor</button>
+      <div class="row status mono" id="status-line">
+        <span id="action-line" class="hl"></span>
+        <span style="margin:0 8px;">&middot;</span>
+        <span id="file-line" class="hl"></span>
+      </div>
+      <div class="divider"></div>
+
+      <form id="updota-form" onsubmit="return false;">
+        <textarea id="editor" class="mono" spellcheck="false" placeholder="# Ação: Criar
+# Local: AI_PROMPT_X.txt
+# A partir daqui, conteúdo completo do arquivo (UTF-8, LF)
+
+... seu conteúdo ...">{{ last_text }}</textarea>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="btn-apply">Salvar e aplicar</button>
+          <button class="btn" id="btn-clear" type="button">Limpar</button>
+          <button class="btn" id="btn-commit" type="button">commit changes</button>
+          <button class="btn" id="btn-restart" type="button">Restart Server</button>
+          <button class="btn danger" id="btn-stop" type="button">Stop Server</button>
         </div>
       </form>
 
-      <div class="grid">
-        <div>
-          <h1>Saída do aplicador</h1>
-          <pre id="out">{{ last_output }}</pre>
-        </div>
-      </div>
+      <div class="divider"></div>
+      <pre class="mono muted" id="result-log" style="white-space:pre-wrap;max-height:28vh;overflow:auto;"></pre>
     </div>
   </div>
 
   <script>
-    function clearBox(){ document.getElementById('patch').value = '' }
-    async function reloadServer(){
-      try{
-        const r = await fetch('/_dev/reload', {method:'POST'});
-        const t = await r.text();
-        document.getElementById('out').textContent = (document.getElementById('out').textContent+'\n\n'+t).trim();
-      }catch(e){
-        alert('Falha ao tocar reload: '+e);
-      }
+    const editor = document.getElementById('editor');
+    const actionLine = document.getElementById('action-line');
+    const fileLine = document.getElementById('file-line');
+    const resultLog = document.getElementById('result-log');
+
+    let lastActionText = '';
+
+    async function postForm(url, data) {
+      const formData = new FormData();
+      for (const k in data) formData.append(k, data[k]);
+      const r = await fetch(url, { method: 'POST', body: formData });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.json();
     }
+
+    document.getElementById('btn-apply').addEventListener('click', async () => {
+      try {
+        const res = await postForm('/updota/apply', { text: editor.value });
+        actionLine.textContent = res.action_line || '';
+        fileLine.textContent = res.file_line || '';
+        resultLog.textContent = res.result || '';
+        lastActionText = `${res.action_line || ''} | ${res.file_line || ''}`.trim();
+      } catch (e) {
+        resultLog.textContent = String(e);
+      }
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      editor.value = '';
+      actionLine.textContent = '';
+      fileLine.textContent = '';
+      resultLog.textContent = '';
+      lastActionText = '';
+    });
+
+    document.getElementById('btn-commit').addEventListener('click', async () => {
+      try {
+        const msg = lastActionText || 'updota: apply';
+        const res = await postForm('/updota/commit', { message: msg });
+        resultLog.textContent = res.result || '';
+      } catch (e) {
+        resultLog.textContent = String(e);
+      }
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', async () => {
+      try {
+        const r = await fetch('/updota/restart', { method: 'POST' });
+        const res = await r.json();
+        resultLog.textContent = res.result || '';
+      } catch (e) {
+        resultLog.textContent = String(e);
+      }
+    });
+
+    document.getElementById('btn-stop').addEventListener('click', async () => {
+      try {
+        const r = await fetch('/updota/stop', { method: 'POST' });
+        const res = await r.json();
+        resultLog.textContent = res.result || '';
+      } catch (e) {
+        resultLog.textContent = String(e);
+      }
+    });
   </script>
 </body>
 </html>
