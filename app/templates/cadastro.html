@@ -175,6 +175,14 @@
             method: 'POST',
             body: formData
         })
+
+        fetch('/api/register', {
+
+            method: 'POST',
+
+            body: formData
+
+        })
         .then(response => {
             console.log('Response status:', response.status);
             return response.json();
