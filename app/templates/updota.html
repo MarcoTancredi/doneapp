@@ -147,19 +147,67 @@
     }
     
     function commitChanges() {
+        const textarea = document.getElementById('patch_content');
+        
         showStatus('Fazendo commit...', 'success');
-        fetch('/updota/commit', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showStatus('Commit realizado com sucesso', 'success');
-                } else {
-                    showStatus('Erro no commit: ' + data.message, 'error');
-                }
-            })
-            .catch(() => {
-                showStatus('Erro ao fazer commit', 'error');
-            });
+        
+        // Limpar textarea imediatamente
+        textarea.value = '';
+        
+        fetch('/updota/commit', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Commit response:', data);
+            
+            let commitOutput = '';
+            
+            if (data.success) {
+                commitOutput = 'COMMIT SUCCESSFUL\n';
+                commitOutput += '==================\n';
+                commitOutput += 'Message: ' + data.message + '\n';
+                commitOutput += 'Timestamp: ' + new Date().toLocaleString() + '\n';
+                commitOutput += 'Status: Changes committed to git repository\n';
+                
+                showStatus('Commit realizado com sucesso', 'success');
+            } else {
+                commitOutput = 'COMMIT FAILED\n';
+                commitOutput += '=============\n';
+                commitOutput += 'Error: ' + data.message + '\n';
+                commitOutput += 'Timestamp: ' + new Date().toLocaleString() + '\n';
+                
+                showStatus('Erro no commit: ' + data.message, 'error');
+            }
+            
+            // Mostrar resultado no textarea
+            textarea.value = commitOutput;
+            
+            // Copiar para clipboard
+            copyToClipboard(commitOutput);
+        })
+        .catch(error => {
+            console.error('Commit error:', error);
+            
+            const errorOutput = 'COMMIT ERROR\n' +
+                              '============\n' +
+                              'Network Error: ' + error.message + '\n' +
+                              'Timestamp: ' + new Date().toLocaleString() + '\n';
+            
+            textarea.value = errorOutput;
+            copyToClipboard(errorOutput);
+            showStatus('Erro ao fazer commit', 'error');
+        });
     }
     
     // Copiar para clipboard
@@ -210,26 +258,34 @@
         })
         .then(response => response.text())
         .then(html => {
-            // Extrair apenas o conteudo entre patch_content tags
-            const startMarker = 'patch_content';
-            const startPos = html.indexOf(startMarker);
-            let output = '';
+            // Metodo mais robusto para extrair o conteudo
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const responseTextarea = doc.getElementById('patch_content');
             
-            if (startPos !== -1) {
-                // Procurar pelo valor do textarea no HTML retornado
-                const textareaStart = html.indexOf('>', startPos) + 1;
-                const textareaEnd = html.indexOf('</textarea>', textareaStart);
-                
-                if (textareaEnd !== -1) {
-                    output = html.substring(textareaStart, textareaEnd);
+            let output = '';
+            if (responseTextarea && responseTextarea.value) {
+                output = responseTextarea.value;
+            } else if (responseTextarea && responseTextarea.textContent) {
+                output = responseTextarea.textContent;
+            } else {
+                // Fallback: procurar por textarea na resposta
+                const textareaMatch = html.match(/<textarea[^>]*id="patch_content"[^>]*>([\s\S]*?)<\/textarea>/i);
+                if (textareaMatch && textareaMatch[1]) {
+                    output = textareaMatch[1];
                     // Decodificar entidades HTML
-                    output = output.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+                    output = output.replace(/&lt;/g, '<')
+                                   .replace(/&gt;/g, '>')
+                                   .replace(/&amp;/g, '&')
+                                   .replace(/&#39;/g, "'")
+                                   .replace(/&quot;/g, '"');
+                } else {
+                    output = 'Erro: Nao foi possivel extrair resultado da resposta';
                 }
             }
             
-            if (!output) {
-                output = 'Resposta do servidor nao pode ser processada';
-            }
+            // Limpar possiveis caracteres extras do inicio e fim
+            output = output.trim();
             
             // Mostrar resultado no textarea
             textarea.value = output;

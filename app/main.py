@@ -9,13 +9,8 @@ from pathlib import Path
 import asyncio
 import threading
 
-
-
-
 # TOO/APP/MAIAA - App FastAPI principal
-
 app = FastAPI(title="DoneApp", description="Publicacao Multicanal Automatizada")
-
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -119,22 +114,28 @@ async def stop_server():
 async def commit_changes():
     """Faz commit das alteracoes via git"""
     try:
+        # TOO/APP/MAIBB - Executar git add
         result_add = subprocess.run(
             ["git", "add", "."], 
-            capture_output=True, text=True, encoding="utf-8"
+            capture_output=True, text=True, encoding="utf-8", errors="replace"
         )
         
+        # TOO/APP/MAICC - Executar git commit
         result_commit = subprocess.run([
             "git", "commit", "-m", "[apply_changes] Alteracoes via updota"
-        ], capture_output=True, text=True, encoding="utf-8")
+        ], capture_output=True, text=True, encoding="utf-8", errors="replace")
         
         if result_commit.returncode == 0:
             return {"success": True, "message": "Commit realizado com sucesso"}
         else:
-            return {"success": False, "message": result_commit.stderr or "Nada para commitar"}
+            # Se nao ha nada para commitar, retornar info
+            if "nothing to commit" in result_commit.stdout.lower():
+                return {"success": False, "message": "Nada para commitar - working tree limpo"}
+            else:
+                return {"success": False, "message": result_commit.stderr or result_commit.stdout or "Erro desconhecido no commit"}
             
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        return {"success": False, "message": f"Erro ao executar git: {str(e)}"}
 
 if __name__ == "__main__":
     import uvicorn
