@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="logo">
-    <h1>CADASTRO</h1>
+    <h1>CRIAR CONTA</h1>
 </div>
 
 <form id="cadastroForm" method="post" action="/cadastro">
@@ -30,57 +30,58 @@
     
     <div class="form-group">
         <label for="empresa">Empresa</label>
-        <input type="text" id="empresa" name="empresa" class="form-control" required>
+        <input type="text" id="empresa" name="empresa" class="form-control">
     </div>
     
     <div class="form-group">
         <label for="password">Senha</label>
-        <input type="password" id="password" name="password" class="form-control" required minlength="6">
+        <input type="password" id="password" name="password" class="form-control" required>
     </div>
     
     <div class="form-group">
         <label for="confirm_password">Confirmar Senha</label>
         <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
     </div>
-    
-    <div class="form-group">
-        <label>Cadastre-se utilizando:</label>
-        <div style="margin-top: 10px;">
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_sms" style="margin-right: 10px;">
+
+    <div class="auth-methods">
+        <h3>Metodos de Autenticacao</h3>
+        <p>Selecione como deseja se autenticar:</p>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_sms">
+                <span class="checkmark"></span>
                 SMS
             </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_whatsapp" style="margin-right: 10px;">
+            
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_whatsapp">
+                <span class="checkmark"></span>
                 WhatsApp
             </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_phone" style="margin-right: 10px;">
-                Telefone
+            
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_phone">
+                <span class="checkmark"></span>
+                Ligacao
             </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_email" style="margin-right: 10px;">
+            
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_email">
+                <span class="checkmark"></span>
                 E-mail
             </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_admin" style="margin-right: 10px;">
-                Via Admin
+            
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_admin">
+                <span class="checkmark"></span>
+                Admin
             </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
-                <input type="checkbox" name="auth_youtube" style="margin-right: 10px;">
+            
+            <label class="checkbox-label">
+                <input type="checkbox" name="auth_youtube">
+                <span class="checkmark"></span>
                 YouTube
-            </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
-                <input type="checkbox" name="auth_tiktok" disabled style="margin-right: 10px;">
-                TikTok (em breve)
-            </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
-                <input type="checkbox" name="auth_github" disabled style="margin-right: 10px;">
-                GitHub (em breve)
-            </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
-                <input type="checkbox" name="auth_facebook" disabled style="margin-right: 10px;">
-                Facebook (em breve)
             </label>
         </div>
     </div>
@@ -93,8 +94,59 @@
 </form>
 
 <div class="links">
-    <a href="/login">Ja tem conta? Faca login</a>
+    <a href="/login">← Voltar ao Login</a>
 </div>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-methods {
+        margin: 25px 0;
+        padding: 20px;
+        background: rgba(0, 100, 100, 0.1);
+        border-radius: 8px;
+        border: 1px solid #00ffff;
+    }
+    
+    .auth-methods h3 {
+        margin-bottom: 10px;
+        color: #00ffff;
+    }
+    
+    .auth-methods p {
+        margin-bottom: 15px;
+        color: #cccccc;
+        font-size: 14px;
+    }
+    
+    .checkbox-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    
+    .checkbox-label:hover {
+        background-color: rgba(0, 255, 255, 0.1);
+    }
+    
+    .checkbox-label input[type="checkbox"] {
+        margin-right: 8px;
+        transform: scale(1.2);
+    }
+    
+    .checkbox-label input[type="checkbox"]:checked {
+        accent-color: #00ffff;
+    }
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -104,44 +156,44 @@
         
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm_password').value;
-        const username = document.getElementById('username').value;
-        const telefone = document.getElementById('telefone').value;
-        const empresa = document.getElementById('empresa').value;
         
         if (password !== confirmPassword) {
-            showStatus('Senhas nao coincidem', 'error');
+            showStatus('As senhas nao coincidem', 'error');
             return;
         }
         
         if (password.length < 6) {
-            showStatus('Senha deve ter pelo menos 6 caracteres', 'error');
+            showStatus('A senha deve ter pelo menos 6 caracteres', 'error');
             return;
         }
-        
-        if (username.length < 3) {
-            showStatus('Nome de usuario deve ter pelo menos 3 caracteres', 'error');
-            return;
-        }
-        
-        if (!telefone.trim()) {
-            showStatus('Telefone e obrigatorio', 'error');
-            return;
-        }
-        
-        if (!empresa.trim()) {
-            showStatus('Empresa e obrigatoria', 'error');
-            return;
-        }
-        
-        const email = document.getElementById('email').value;
-        const nome = document.getElementById('nome').value;
         
         showStatus('Criando conta...', 'success');
         
-        // TODO: Implementar cadastro backend
-        setTimeout(() => {
-            showStatus('Cadastro nao implementado ainda', 'error');
-        }, 1000);
+        const formData = new FormData(this);
+        
+        fetch('/api/register', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Register response:', data);
+            if (data.success) {
+                showStatus('Conta criada com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/dashboard';
+                }, 1000);
+            } else {
+                showStatus(data.message || 'Erro ao criar conta', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Register error:', error);
+            showStatus('Erro de conexao: ' + error.message, 'error');
+        });
     });
 </script>
 {% endblock %}

@@ -1,0 +1,213 @@
+
+
+{% extends "base.html" %}
+
+
+
+{% block title %}Dashboard - DoneApp{% endblock %}
+
+
+
+{% block content %}
+
+<div class="logo">
+
+    <h1>DASHBOARD</h1>
+
+</div>
+
+
+
+<div class="user-info" style="margin-bottom: 30px; padding: 15px; background: rgba(0, 100, 100, 0.2); border-radius: 8px;">
+
+    <h3>Bem-vindo, {{ user.username }}!</h3>
+
+    <p>Email: {{ user.email }}</p>
+
+    {% if user.company %}<p>Empresa: {{ user.company }}</p>{% endif %}
+
+</div>
+
+
+
+<div class="dashboard-actions">
+
+    <button type="button" class="btn btn-primary" onclick="createPost()">
+
+        Nova Publicacao
+
+    </button>
+
+    
+
+    <button type="button" class="btn btn-social" onclick="managePlatforms()">
+
+        Gerenciar Redes Sociais
+
+    </button>
+
+    
+
+    <button type="button" class="btn btn-social" onclick="viewScheduled()">
+
+        Posts Agendados
+
+    </button>
+
+    
+
+    <button type="button" class="btn btn-social" onclick="viewAnalytics()">
+
+        Analytics
+
+    </button>
+
+</div>
+
+
+
+<div class="quick-stats" style="margin-top: 30px;">
+
+    <h3>Estatisticas Rapidas</h3>
+
+    <p>Posts publicados: <span id="postsCount">0</span></p>
+
+    <p>Plataformas conectadas: <span id="platformsCount">0</span></p>
+
+    <p>Posts agendados: <span id="scheduledCount">0</span></p>
+
+</div>
+
+
+
+<div class="links">
+
+    <a href="#" onclick="logout()">Sair</a>
+
+</div>
+
+{% endblock %}
+
+
+
+{% block extra_scripts %}
+
+<script>
+
+    function createPost() {
+
+        showStatus('Redirecionando para criacao de post...', 'success');
+
+        // TODO: Implementar pagina de criacao
+
+        setTimeout(() => {
+
+            showStatus('Em desenvolvimento', 'error');
+
+        }, 1000);
+
+    }
+
+    
+
+    function managePlatforms() {
+
+        showStatus('Abrindo gerenciamento de plataformas...', 'success');
+
+        // TODO: Implementar gerenciamento de plataformas
+
+        setTimeout(() => {
+
+            showStatus('Em desenvolvimento', 'error');
+
+        }, 1000);
+
+    }
+
+    
+
+    function viewScheduled() {
+
+        showStatus('Carregando posts agendados...', 'success');
+
+        // TODO: Implementar visualizacao de posts agendados
+
+        setTimeout(() => {
+
+            showStatus('Em desenvolvimento', 'error');
+
+        }, 1000);
+
+    }
+
+    
+
+    function viewAnalytics() {
+
+        showStatus('Carregando analytics...', 'success');
+
+        // TODO: Implementar analytics
+
+        setTimeout(() => {
+
+            showStatus('Em desenvolvimento', 'error');
+
+        }, 1000);
+
+    }
+
+    
+
+    function logout() {
+
+        showStatus('Fazendo logout...', 'success');
+
+        
+
+        fetch('/api/logout', {
+
+            method: 'POST'
+
+        })
+
+        .then(response => response.json())
+
+        .then(data => {
+
+            showStatus('Logout realizado', 'success');
+
+            setTimeout(() => {
+
+                window.location.href = '/login';
+
+            }, 1000);
+
+        })
+
+        .catch(error => {
+
+            showStatus('Erro ao fazer logout', 'error');
+
+        });
+
+    }
+
+    
+
+    // Carregar estatisticas ao carregar pagina
+
+    document.addEventListener('DOMContentLoaded', function() {
+
+        // TODO: Implementar carregamento de estatisticas
+
+        document.getElementById('postsCount').textContent = '0';
+
+        document.getElementById('platformsCount').textContent = '0'; 
+
+        document.getElementById('scheduledCount').textContent = '0';
+
+    });
+
+</script>
+
+{% endblock %}
