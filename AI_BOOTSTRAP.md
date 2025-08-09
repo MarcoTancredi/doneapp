@@ -1,116 +1,292 @@
-# Ação: Criar
-# Local: AI_BOOTSTRAP.md
-# A partir daqui, conteúdo completo do arquivo (UTF-8, LF)
+# AI_BOOTSTRAP — Complete Project Guide for Any AI Model
 
-# AI_BOOTSTRAP — Como qualquer IA deve continuar este projeto (START HERE)
-
-> Leia este arquivo **primeiro**. Em seguida, leia `contexto.txt` e `PROTOCOL.md`.  
-> Todas as alterações de código **devem** ser entregues no formato de patch descrito em `PROTOCOL.md` e aplicadas via **/updota** (ou `tools/apply_changes.py`).
+> **START HERE**: This is the ONLY file any AI model needs to read to understand and continue this project with ZERO prior context.
 
 ---
 
-## 1) Resumo do projeto
-- App web em **Python 3.12** + **FastAPI**.
-- Foco: módulos de cadastro/login, UI Neon responsiva, e utilitário **/updota** para aplicar patches do próprio chat.
-- Baixo custo: sem Docker por enquanto; dependências mínimas (vide `requirements.txt`).
-- Hospedagem atual: máquina Windows 11 local (IP dinâmico) com **Cloudflare Tunnel** (Zero Trust). Migração futura: **VPS (HostGator)** → **AWS/Azure**.
-- Mídias serão servidas pelo provedor (HostGator) quando entrarmos em publicação multi-redes.
+## PROJECT OVERVIEW: DONE - Multi-Platform Social Media Automation
 
-Rotas principais:
-- `/` → redireciona para `/login`
-- `/login` → tela de login (UI Neon, responsiva, botões sociais YouTube/TikTok/GitHub/Facebook)
-- `/cadastro` → tela de cadastro (checklist de métodos de autenticação)
-- `/updota` → colar patch; salvar; aplicar; ver saída (uso apenas por admin)
+**MISSION**: Build a 100% functional application capable of automated and scheduled publishing to ALL major social media platforms (YouTube, Instagram, Facebook, Threads, X/Twitter, LinkedIn, TikTok, Kwai, etc.) - competing directly with expensive services like Blotato.com ($299+/month).
+
+**CORE VALUE PROPOSITION**: 
+- Replace expensive API subscription services (Blotato, Buffer, Hootsuite)
+- Direct API integration with each social platform
+- Client manages their own API keys and permissions
+- Fast development and deployment
+- Cost-effective solution for businesses and creators
 
 ---
 
-## 2) Onde a IA precisa olhar antes de responder
-1. **Este arquivo**: `AI_BOOTSTRAP.md`
-2. **Contexto de ambiente**: `contexto.txt`
-3. **Protocolo de patches**: `PROTOCOL.md`
-4. **Estrutura do app**: `app/main.py`, `app/templates/*.html`, `tools/apply_changes.py`, `requirements.txt`
-5. **Notas do repositório**: `README.md`
+## CURRENT DEVELOPMENT STACK
 
-Se algum destes arquivos estiver ausente/desatualizado, **a IA deve propor um patch de criação/correção** (no formato do `PROTOCOL.md`) antes de qualquer outra mudança.
+**Environment**: Windows 11 24H2, Python 3.12, FastAPI, SQLite → MySQL → PostgreSQL
+**Hosting Path**: Local (Cloudflare Tunnel) → VPS (HostGator) → Cloud (AWS/Azure)
+**Domain**: planetamicro.com.br (subdomains: app., api., done.)
+**Working Directory**: D:\Bin\done
 
----
-
-## 3) Regras de formatação para a IA (obrigatórias)
-- Responder **somente** com blocos de código contendo patches no formato do `PROTOCOL.md`.  
-  Nada de texto fora de bloco quando a intenção for alterar/crear arquivos.
-- **ASCII puro**: sem aspas “curvas”, travessão, reticências especiais, etc. Use `"` `'` `--` `...`.
-- **UTF-8**; quebras de linha **LF**.
-- Para **Criar** arquivos: conteúdo completo a partir da 3ª linha.
-- Para **Modificar**: forneça `# Antes:` (até ~5–20 linhas que identifiquem com segurança o trecho) e `# Depois:` com o novo conteúdo. Evite contexto frágil.
+**Key Technologies**:
+- Backend: FastAPI (Python 3.12)
+- Frontend: Jinja2 templates + vanilla JavaScript
+- Database: SQLite (dev) → MySQL (prod) → PostgreSQL (scale)
+- UI Theme: Neon aesthetic, mobile-first (9:16 ratio)
+- Deployment: Conda environment, Uvicorn server
 
 ---
 
-## 4) Como aplicar patches
-Opção A — via UI:
-- Acesse **/updota**
-- Cole o patch
-- Clique **Salvar Patch e Aplicar**
-- Verifique o output (sucesso/erros)
+## PATCH-BASED DEVELOPMENT WORKFLOW
 
-Opção B — via CLI (Windows):
+**CRITICAL**: This project uses a structured patch system to prevent human errors in code modification.
+
+### The Problem We Solve:
+- Human developers frequently make mistakes when copying/pasting AI-generated code
+- File modifications often end up in wrong locations
+- Context gets lost between AI conversations
+- Traditional diff systems are error-prone
+
+### Our Solution:
+1. **AI generates patches** following PROTOCOL.md format (6 action types)
+2. **Human applies patches** via /updota UI or tools/apply_changes.py
+3. **System creates backups** and validates all changes
+4. **Git tracking** maintains complete audit trail
+
+### Patch Actions Available:
+- `#Action System` - Execute commands (git, server restart)
+- `#Action DeleteFile` - Remove files/directories
+- `#Action CreateFile` - Create complete files
+- `#Action DeleteText` - Remove specific text sections
+- `#Action InsertText` - Insert text at specific locations
+- `#Action ModifyText` - Replace text between context markers
+
+---
+
+## TARGET PLATFORMS AND API ANALYSIS
+
+Based on analysis of n8n workflows and Blotato.com offerings, our platform targets:
+
+### Tier 1 Platforms (Immediate Priority):
+- **YouTube**: YouTube Data API v3, OAuth 2.0
+- **Instagram**: Instagram Basic Display + Instagram Graph API
+- **Facebook**: Facebook Graph API, Pages API
+- **X (Twitter)**: Twitter API v2, OAuth 2.0
+- **LinkedIn**: LinkedIn Marketing API, OAuth 2.0
+
+### Tier 2 Platforms (Phase 2):
+- **TikTok**: TikTok for Developers API
+- **Threads**: Meta Threads API (when available)
+- **Kwai**: Kwai API (regional focus)
+- **Pinterest**: Pinterest API
+- **Snapchat**: Snapchat Marketing API
+
+### API Key Management Strategy:
+1. **Client-Owned Keys**: Each user provides their own API credentials
+2. **Secure Storage**: Encrypted storage of credentials per user
+3. **Permission Scoping**: Minimal required permissions per platform
+4. **Audit Logging**: Complete trail of all API calls and publishing activities
+
+---
+
+## COMPETITIVE ANALYSIS: BLOTATO.COM REPLACEMENT
+
+**Blotato.com Services We Replace**:
+- Multi-platform posting ($299+/month) → Our free/low-cost solution
+- Video format conversion → FFmpeg integration
+- Scheduling system → Built-in cron/scheduler
+- Analytics dashboard → Platform-native analytics aggregation
+- Content optimization → AI-powered content adaptation
+
+**Our Advantages**:
+- No monthly API fees (client uses own keys)
+- Open source and customizable
+- Direct platform integration (no middleman)
+- Faster feature development
+- Complete data ownership
+
+---
+
+## CURRENT PROJECT STATUS
+
+### Completed:
+- ✅ Patch system (PROTOCOL.md + apply_changes.py)
+- ✅ Basic FastAPI structure
+- ✅ Neon UI templates (login, signup, updota)
+- ✅ Development environment setup
+- ✅ Backup and versioning system
+
+### In Progress:
+- 🔄 User authentication system
+- 🔄 Database schema design
+- 🔄 Social platform integration framework
+
+### Next Priorities:
+1. **Complete user management** (registration, login, profiles)
+2. **Platform connector architecture** (OAuth flows, API integrations)
+3. **Content management system** (upload, edit, schedule)
+4. **Publishing engine** (multi-platform simultaneous posting)
+5. **Analytics dashboard** (performance tracking across platforms)
+
+---
+
+## DEVELOPMENT GUIDELINES FOR AI MODELS
+
+### MANDATORY READING ORDER:
+1. This file (AI_BOOTSTRAP.md)
+2. PROTOCOL.md (patch format specification)
+3. Current codebase structure (app/, tools/, templates/)
+
+### RESPONSE FORMAT REQUIREMENTS:
+- **ALWAYS** respond with patches in PROTOCOL.md format
+- **NEVER** provide free-form code that needs manual copying
+- Use ASCII characters only (no smart quotes, em-dashes)
+- UTF-8 encoding with LF line endings
+- Include comprehensive comments with TOO/APL/APLxx format
+
+### CODE QUALITY STANDARDS:
+- **Comment every function** and logical section (max 20 lines between comments)
+- **Use unique identifiers** in comments: [3 letters path]/[3 letters]/[5 letters function][2 letters increment]
+- **Mobile-first responsive design** (9:16 aspect ratio priority)
+- **Neon UI aesthetic** with proper animations and effects
+- **Error handling** with user-friendly messages (green 1s success, red 3s errors)
+
+### DEPLOYMENT COMMANDS:
+```bash
+# Activate environment
 conda activate doneapp
-python tools\apply_changes.py –input inbox\patch_input.txt
 
-Depois:
-git add .
-git commit -m “[apply_changes] <descrição>”
-git push
+# Run development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
----
+# Apply patches manually
+python tools/apply_changes.py --input inbox/patch_input.txt
 
-## 5) Executar localmente
+# Access points
+http://127.0.0.1:8000/login     # Main login
+http://127.0.0.1:8000/cadastro  # User registration  
+http://127.0.0.1:8000/updota    # Patch application (admin)
 
-conda activate doneapp
-uvicorn app.main:app –reload –host 0.0.0.0 –port 8000
+BUSINESS MODEL AND MONETIZATION
+Revenue Streams:
 
-Acesse:  
-- `http://127.0.0.1:8000/login`  
-- `http://127.0.0.1:8000/cadastro`  
-- `http://127.0.0.1:8000/updota`
+Freemium SaaS: Basic features free, advanced scheduling/analytics paid
+White-label Licensing: Sell customized versions to agencies
+API Rate Optimization: Premium tiers for higher posting volumes
+Managed Services: Setup and management for enterprise clients
 
----
+Cost Structure:
 
-## 6) Convenções de UI e feedback ao usuário
-- Mensagens inline (sem pop-ups).  
-  - Sucesso: texto verde por **1s**  
-  - Erro/Em implementação: texto vermelho por **3s**  
-- Valores (cores/duração) virão de config futura (arquivo/tabela).  
-- Layout mobile-first (9:16), estilos **Neon** e sensação de “janela flutuando”.
+Development: Open source, community-driven
+Infrastructure: Scalable cloud hosting costs
+Support: Documentation and community support
+No API Fees: Clients use their own platform credentials
 
----
 
-## 7) Próximos passos (roadmap curto)
-- Finalizar/estabilizar UI de `/login` e `/cadastro`.
-- Implementar backend de cadastro + verificação por e-mail (gratis/baixo custo) e **log** completo.
-- Estruturar DB inicial (users, log, config) conforme escopo.
-- Login Social: começar por **YouTube**; outros botões exibem “em implementação” (vermelho 3s).
-- Preparar migração para VPS e depois cloud.
+LONG-TERM VISION
+Phase 1 (Current - 3 days):
 
----
+Complete user management and authentication
+Integrate top 5 social platforms
+Basic posting and scheduling functionality
+Web-based dashboard
 
-## 8) Erros comuns e como evitar
-- **Aspas curvas**: sempre use ASCII.
-- **Contexto frágil no patch**: escolha linhas “âncora” robustas no `# Antes:`.
-- **Alterar README/PROTOCOL com “Modificar” sem contexto**: prefira “Criar” novos docs ou substituição completa somente se houver consenso/backup.
+Phase 2 (3-6 days):
 
----
+Advanced content optimization (AI-powered)
+Bulk upload and CSV import
+Team collaboration features
+Mobile app (React Native/Flutter)
 
-## 9) Contatos e domínios (resumo do contexto.txt)
-- Domínio base: `planetamicro.com.br`
-- Subdomínios Cloudflare Tunnel já usados (ex.): `app.planetamicro.com.br`, `api.planetamicro.com.br`, `done.planetamicro.com.br`
-- Ambiente local Windows 11; Git; Miniconda; VSCode.
+Phase 3 (6-12 days):
 
----
+AI content generation integration
+Advanced analytics and reporting
+Marketplace for content templates
+Enterprise features and white-labeling
 
-## 10) O que a IA deve fazer ao iniciar uma nova sessão
-1. Ler `AI_BOOTSTRAP.md`, `contexto.txt`, `PROTOCOL.md`.
-2. Inspecionar as telas (`app/templates`) e `app/main.py`.
-3. Propor patches **no formato do PROTOCOL**.  
-4. Nunca enviar instruções “em texto corrido” que precisem ser copiadas manualmente para arquivos.
+Phase 4 (12+ days):
 
-Fim.
+Video editing and optimization tools
+AI-powered posting optimization
+Global expansion and localization
+IPO or acquisition readiness
+
+
+ARCHITECTURE DECISIONS
+Database Schema (Planned):
+sqlusers (id, username, email, password_hash, created_at, plan_type)
+platforms (id, name, api_endpoint, oauth_config, status)
+user_platforms (user_id, platform_id, credentials_encrypted, permissions)
+posts (id, user_id, content, media_urls, scheduled_time, status)
+post_platforms (post_id, platform_id, platform_post_id, published_at, status)
+analytics (id, post_id, platform_id, metrics_json, collected_at)
+logs (id, user_id, action, details, timestamp)
+Security Considerations:
+
+Credential Encryption: AES-256 for API keys and tokens
+OAuth Implementation: Secure token refresh mechanisms
+Rate Limiting: Prevent API abuse per user/platform
+Audit Logging: Complete trail of all system actions
+
+
+WHY THIS APPROACH WORKS
+For Development Teams:
+
+Eliminates copy-paste errors in code modifications
+Maintains context across long development cycles
+Provides complete audit trail of all changes
+Enables rapid iteration without breaking existing code
+
+For Business Success:
+
+Faster time-to-market than building traditional integrations
+Lower operational costs than subscription-based competitors
+Higher client retention through direct API ownership
+Scalable architecture supporting rapid growth
+
+For AI Collaboration:
+
+Any AI model can contribute without prior context
+Consistent code quality through enforced standards
+Reduced debugging time through systematic change tracking
+Knowledge preservation across conversation boundaries
+
+
+EMERGENCY PROCEDURES
+If AI Model Loses Context:
+
+Read this file completely
+Check PROTOCOL.md for patch format
+Examine current app/ structure
+Propose patches following established patterns
+
+If Patch Application Fails:
+
+Check .backups/ directory for restoration
+Verify PROTOCOL.md format compliance
+Use /updota interface to debug parsing
+Apply patches individually if batch fails
+
+If Server Issues Occur:
+
+Check /_dev/reload endpoint
+Restart via /updota "Restart Server" button
+Manual restart: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+Check logs for specific error details
+
+
+SUCCESS METRICS
+Technical KPIs:
+
+Patch application success rate > 95%
+Server uptime > 99.5%
+API response times < 200ms
+Zero data loss incidents
+
+Business KPIs:
+
+User acquisition: 1000+ users in 6 months
+Platform integrations: 10+ platforms in 12 months
+Revenue: $10k MRR by month 12
+Customer satisfaction: 4.5+ stars average rating
+
+This document ensures ANY AI model can immediately understand and continue this project, maintaining consistency, quality, and business focus throughout the development lifecycle.
+
+FINAL NOTE: The combination of structured patch system + comprehensive documentation + clear business vision creates a sustainable development environment that can scale from individual contributor to enterprise-level platform.

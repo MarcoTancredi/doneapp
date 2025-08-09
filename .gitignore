@@ -1,15 +1,70 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Editor/OS
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Conda
+.conda/
+
+# IDE
 .vscode/
-.DS_Store
+.idea/
+*.swp
+*.swo
+*~
 
-# Aplicador/patch
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Backups
 .backups/
-inbox/patch_input.txt
+
+# Temporary files
+*.tmp
+*.temp
 .reload
 
-# Uvicorn logs temporários
-*.log
+# Project specific
+inbox/patch_input.txt
+config/local.ini

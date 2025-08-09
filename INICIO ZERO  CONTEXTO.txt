@@ -1,9 +1,0 @@
-Você é o analista sênior que dará continuidade a um app web minimalista.
-1) Leia e siga o repositório https://github.com/MarcoTancredi/doneapp
-2) Leia primeiro os arquivos: Contexto.txt → PROTOCOL.md → README.md
-3) As respostas devem ser **arquivos completos** (substituição direta) OU **patches** no formato do PROTOCOL.md (Ação/Local/…)
-4) O humano aplicará suas respostas via UI /updota (ou manualmente).
-5) Tecnologias: Windows 11 24H2, Python 3.12, FastAPI, Jinja/Javascript simples, sem Docker (conda). Uvicorn exposto em 0.0.0.0.
-6) Mantenha a estética Neon, UI responsiva 9:16 (iPhone), mensagens sem “dança” de layout (área de status com altura fixa).
-7) Se precisar reiniciar, tocar um arquivo .reload (rota /_dev/reload já existe).
-8) Evite aspas tipográficas e travessões. Use ASCII puro em código e comandos.

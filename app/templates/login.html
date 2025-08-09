@@ -1,168 +1,92 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Done — Login</title>
-  <style>
-    :root{
-      --bg1:#0a0f1f; --bg2:#141a33;
-      --panel:#0f1430; --accent:#00e0ff; --accent2:#7cffb2;
-      --ok:#3ddc84; --err:#ff4d6d; --muted:#a7b0c0;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto,Arial}
-    body{
-      background: radial-gradient(1200px 800px at 80% -10%, rgba(0,224,255,.12), transparent 60%),
-                  radial-gradient(900px 600px at 10% 110%, rgba(124,255,178,.10), transparent 60%),
-                  linear-gradient(135deg,var(--bg1),var(--bg2));
-      display:flex;align-items:center;justify-content:center;padding:24px;
-    }
-    .card{
-      width:min(420px, 92vw);
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      border:1px solid rgba(0,224,255,.25);
-      backdrop-filter: blur(10px);
-      border-radius:20px; padding:24px 22px;
-      box-shadow: 0 30px 80px rgba(0, 224, 255, .12), inset 0 0 0 1px rgba(255,255,255,.03);
-      position:relative;
-    }
-    .glow:before{
-      content:""; position:absolute; inset:-2px;
-      border-radius:22px; pointer-events:none;
-      box-shadow: 0 0 32px rgba(0,224,255,.18);
-    }
-    h1{margin:0 0 14px; font-size:22px; color:#e9f1ff; letter-spacing:.4px}
-    .sub{color:var(--muted); font-size:13px; margin-bottom:18px}
-    label{display:block; color:#d9e4ff; font-size:13px; margin:8px 2px 6px}
-    input[type="text"], input[type="password"]{
-      width:100%; background:#0d1228; color:#e6eeff;
-      border:1px solid rgba(0,224,255,.25);
-      border-radius:12px; padding:12px 12px; outline:none;
-    }
-    .row{display:flex; gap:10px; align-items:center; justify-content:space-between; margin:10px 2px}
-    .row .left{display:flex; align-items:center; gap:8px; color:#c6d2e8; font-size:13px}
-    .row input[type="checkbox"]{transform:scale(1.1)}
-    .btn{
-      width:100%; border:0; border-radius:12px; padding:12px 14px;
-      background: linear-gradient(90deg, var(--accent), #5de8cd);
-      color:#021014; font-weight:700; letter-spacing:.3px; cursor:pointer;
-    }
-    .btn:active{transform:translateY(1px)}
-    .alt-title{
-      height:20px; /* reserva espaço das mensagens sem mexer no layout */
-      display:flex; align-items:center; justify-content:center;
-      color:#b9c5da; font-size:13px; margin:12px 0 10px;
-      transition: color .2s ease;
-    }
-    .alt-title.ok{ color: var(--ok) }
-    .alt-title.err{ color: var(--err) }
-    .oauth{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
-    .oauth button{
-      background:#0d1228; border:1px solid rgba(255,255,255,.12);
-      border-radius:12px; padding:10px; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .oauth button:hover{ border-color: rgba(0,224,255,.4) }
-    .footer{
-      display:flex; justify-content:center; gap:6px; margin-top:14px; font-size:13px; color:#c8d3ea
-    }
-    .footer a{ color: var(--accent2); text-decoration:none }
-    .brand{
-      position:absolute; right:12px; top:12px; color:#7bbfe2; font-size:12px;
-      opacity:.6
-    }
-    .hidden{display:none !important}
-    /* responsivo alto (9:16) */
-    @media (max-height:700px){
-      .card{ padding:18px 16px }
-      .oauth{ gap:8px }
-    }
-  </style>
-</head>
-<body>
-  <div class="card glow">
-    <div class="brand">Done v0.1</div>
-    <h1>Entrar</h1>
-    <div class="sub">Acesse com seu usuário e senha, ou com uma rede social.</div>
+{% extends "base.html" %}
 
-    <label for="user">User Name / e-mail</label>
-    <input id="user" type="text" autocomplete="username" placeholder="seu-usuario ou voce@dominio.com" />
+{% block title %}Login - DoneApp{% endblock %}
 
-    <label for="pass">Senha</label>
-    <input id="pass" type="password" autocomplete="current-password" placeholder="••••••••" />
+{% block content %}
+<div class="logo">
+    <h1>DONE</h1>
+</div>
 
-    <div class="row">
-      <div class="left">
-        <input id="stay" type="checkbox" />
-        <label for="stay" style="margin:0">manter‑me conectado</label>
-      </div>
-      <div class="right" style="font-size:12px; color:#9fb0cc">
-        <a href="#" style="color:#7cffb2; text-decoration:none" onclick="notif('Em breve'); return false;">Esqueci a senha</a>
-      </div>
+<form id="loginForm" method="post" action="/login">
+    <div class="form-group">
+        <label for="login">E-mail ou Nome de Usuario</label>
+        <input type="text" id="login" name="login" class="form-control" required>
     </div>
-
-    <button class="btn" id="btnLogin">Entrar</button>
-
-    <div id="alt" class="alt-title">Logar‑se com</div>
-
-    <div class="oauth">
-      <!-- YouTube -->
-      <button onclick="social('YouTube')"
-        aria-label="Login com YouTube" title="YouTube">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
-          <path d="M23.5 6.2a3.01 3.01 0 0 0-2.1-2.1C19.3 3.5 12 3.5 12 3.5s-7.3 0-9.4.6A3.01 3.01 0 0 0 .5 6.2C0 8.3 0 12 0 12s0 3.7.5 5.8a3.01 3.01 0 0 0 2.1 2.1c2.1.5 9.4.5 9.4.5s7.3 0 9.4-.5a3.01 3.01 0 0 0 2.1-2.1c.5-2.1.5-5.8.5-5.8s0-3.7-.5-5.8zM9.6 15.5v-7L16 12l-6.4 3.5z"/>
-        </svg>
-      </button>
-      <!-- TikTok -->
-      <button onclick="social('TikTok')" aria-label="Login com TikTok" title="TikTok">
-        <svg width="26" height="26" viewBox="0 0 48 48" aria-hidden="true">
-          <path fill="#000" d="M0 0h48v48H0z" opacity=".0"/>
-          <path fill="#25F4EE" d="M34.9 14.9a13 13 0 0 1-5.1-3.6v17.4a8.7 8.7 0 1 1-7-8.5v5.3a3.5 3.5 0 1 0 2.5 3.3V5h4.6c1.1 3 2.8 5.2 5 6.8z"/>
-          <path fill="#FE2C55" d="M34.9 14.9c2.2 1.6 4.7 2.7 7.5 3v5a16 16 0 0 1-7.5-2.1v7.3a13.3 13.3 0 1 1-11.8-13v4.6a8.7 8.7 0 1 0 7 8.5V5h4.8c1.1 3 2.8 5.2 5 6.8-2.9-.2-5.4-1.3-7.5-3z"/>
-        </svg>
-      </button>
-      <!-- GitHub -->
-      <button onclick="social('GitHub')" aria-label="Login com GitHub" title="GitHub">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
-          <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.1c-3.3.7-4-1.4-4-1.4-.6-1.4-1.5-1.8-1.5-1.8-1.2-.8.1-.8.1-.8 1.3.1 2 . 1.9 2.1 1.3 2.2 3.4 1.6 4.2 1.2.1-.9.5-1.6 1-2-2.6-.3-5.4-1.3-5.4-5.9 0-1.3.5-2.4 1.2-3.3-.1-.3-.5-1.7.1-3.5 0 0 1-.3 3.4 1.2a11.8 11.8 0 0 1 6.2 0C16.7 5 17.7 5.3 17.7 5.3c.6 1.8.2 3.2.1 3.5.8.9 1.2 2 1.2 3.3 0 4.6-2.8 5.6-5.4 5.9.6.5 1.1 1.5 1.1 3v4.4c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/>
-        </svg>
-      </button>
-      <!-- Facebook -->
-      <button onclick="social('Facebook')" aria-label="Login com Facebook" title="Facebook">
-        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="#1877F2" d="M24 12.07C24 5.4 18.6 0 11.93 0S-.14 5.4-.14 12.07C-.14 18.1 4.25 23.1 10 24v-8.4H7v-3.2h3V9.2c0-3 1.8-4.6 4.5-4.6 1.3 0 2.6.2 2.6.2v2.8h-1.5c-1.5 0-2 1-2 2v2.2h3.4l-.5 3.2H13V24c5.8-.9 10.1-5.9 10.1-11.93z"/>
-        </svg>
-      </button>
+    
+    <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" class="form-control" required>
     </div>
-
-    <div class="footer">
-      <span>Novo aqui?</span><a href="/cadastro">Cadastre‑se</a>
+    
+    <div class="form-group">
+        <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+            <input type="checkbox" name="remember_me" style="margin-right: 10px;">
+            Mantenha-me conectado
+        </label>
     </div>
-  </div>
+    
+    <button type="submit" class="btn btn-primary">Entrar</button>
+    
+    <div class="status-area">
+        <div class="status-message"></div>
+    </div>
+</form>
 
-  <script>
-    const alt = document.getElementById('alt');
-    const btnLogin = document.getElementById('btnLogin');
+<div class="social-buttons">
+    <h3>Ou entre com:</h3>
+    
+    <button type="button" class="btn btn-social" onclick="handleYouTubeLogin()">
+        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+        YouTube
+    </button>
+    
+    <button type="button" class="btn btn-social not-implemented" onclick="handleNotImplemented('Login TikTok')">
+        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+        </svg>
+        TikTok
+    </button>
+    
+    <button type="button" class="btn btn-social not-implemented" onclick="handleNotImplemented('Login GitHub')">
+        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+        GitHub
+    </button>
+    
+    <button type="button" class="btn btn-social not-implemented" onclick="handleNotImplemented('Login Facebook')">
+        <svg class="social-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+        </svg>
+        Facebook
+    </button>
+</div>
 
-    function showMsg(text, cls, ms){
-      alt.textContent = text;
-      alt.classList.remove('ok','err');
-      if (cls) alt.classList.add(cls);
-      setTimeout(()=>{ alt.textContent = 'Logar‑se com'; alt.classList.remove('ok','err'); }, ms||1000);
+<div class="links">
+    <a href="/cadastro">Nao tem conta? Cadastre-se</a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function handleYouTubeLogin() {
+        showStatus('Redirecionando para YouTube...', 'success');
+        // TODO: Implementar OAuth YouTube
+        setTimeout(() => {
+            handleNotImplemented('Login YouTube');
+        }, 1000);
     }
-    function notif(text){ showMsg(text, 'ok', 1000); }
-
-    function social(name){
-      showMsg(name+' — em implementação', 'err', 3000);
-    }
-
-    btnLogin.addEventListener('click', (e)=>{
-      e.preventDefault();
-      // mock sucesso
-      showMsg('Login efetuado com sucesso', 'ok', 1000);
-      setTimeout(()=>{ window.location.href='/home'; }, 1000);
+    
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        showStatus('Verificando credenciais...', 'success');
+        
+        // TODO: Implementar validacao de login
+        setTimeout(() => {
+            showStatus('Login nao implementado ainda', 'error');
+        }, 1000);
     });
-  </script>
-</body>
-</html>
+</script>
+{% endblock %}

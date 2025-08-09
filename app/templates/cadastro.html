@@ -1,172 +1,147 @@
-<!-- Ação: CRIAR/SUBSTITUIR -->
-<!-- Local: app/templates/cadastro.html -->
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cadastro — Done</title>
-  <style>
-    :root {
-      --bg:#0b0f17;
-      --panel:#0e1525;
-      --neon:#00e5ff;
-      --neon2:#7b61ff;
-      --ok:#2dd36f;
-      --warn:#ff3b30;
-      --txt:#e6f1ff;
-      --muted:#9bb0c9;
-      --border: 1px solid rgba(255,255,255,0.12);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin:0; padding:0; background: radial-gradient(1200px 600px at 80% 20%, #101a2e 0%, #090d14 60%, #06080d 100%);
-      color: var(--txt); font-family: ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;
-      min-height: 100vh; display:flex; align-items:center; justify-content:center;
-    }
-    .wrap {
-      width: 100%; max-width: 440px; padding: 16px;
-    }
-    .card {
-      background: linear-gradient(180deg, rgba(20,30,50,0.9), rgba(10,14,24,0.9));
-      border-radius: 18px; border: var(--border);
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,229,255,0.08) inset;
-      padding: 18px 18px 16px;
-      position:relative;
-    }
-    .glow {
-      position:absolute; inset:-2px; border-radius:18px; pointer-events:none;
-      background: radial-gradient(600px 120px at 50% -20%, rgba(0,229,255,0.15), transparent 60%),
-                  radial-gradient(600px 120px at 50% 120%, rgba(123,97,255,0.15), transparent 60%);
-      filter: blur(12px);
-    }
-    h1 { margin: 4px 4px 10px; font-size: 20px; font-weight:700; letter-spacing:.3px; }
-    .muted { color: var(--muted); font-size: 12px; margin: 0 4px 14px; min-height: 16px;}
-    label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display:block; }
-    input[type="text"], input[type="email"], input[type="password"], input[type="tel"] {
-      width:100%; background:#0c1220; border:1px solid rgba(255,255,255,0.1);
-      border-radius:12px; padding:10px 12px; color:var(--txt); outline:none;
-      transition:border-color .15s ease, box-shadow .15s ease; line-height:1.2;
-    }
-    input:focus { border-color: var(--neon); box-shadow: 0 0 0 3px rgba(0,229,255,0.15); }
-    .grid { display:grid; grid-template-columns: 1fr; gap:10px; }
-    .row { display:flex; gap:8px; }
-    .row > * { flex:1; }
-    .checks-wrap {
-      border: var(--border); border-radius: 12px; padding:10px; background:#0c1220;
-    }
-    table.checks { width:100%; border-collapse:collapse; font-size:13px; color:var(--txt);}
-    table.checks td { padding:6px 4px; vertical-align:middle; }
-    table.checks input[type="checkbox"] { transform: translateY(1px); }
-    .actions { display:flex; gap:10px; margin-top: 12px; }
-    .btn {
-      border:none; border-radius:12px; padding:10px 14px; cursor:pointer;
-      background: linear-gradient(90deg, var(--neon), var(--neon2));
-      color:#001018; font-weight:700; letter-spacing:.2px;
-      box-shadow: 0 6px 20px rgba(0,229,255,0.25);
-    }
-    .btn.secondary {
-      background: #101827; color:var(--txt); border:1px solid rgba(255,255,255,0.14);
-      box-shadow:none;
-    }
-    .note { min-height: 18px; margin-top:8px; font-size:12px; color:var(--muted); }
-    .note.ok { color: var(--ok); }
-    .note.err { color: var(--warn); }
-    .foot { margin-top: 12px; font-size:12px; color:var(--muted); text-align:center; }
-    .foot a { color: var(--neon); text-decoration:none; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="card">
-      <div class="glow"></div>
-      <h1>Cadastro</h1>
-      <p class="muted">Preencha seus dados. Após enviar, aguarde liberação do administrador.</p>
+{% extends "base.html" %}
 
-      <form onsubmit="return onSubmit(event)">
-        <div class="grid">
-          <div>
-            <label>Empresa</label>
-            <input type="text" id="company" placeholder="Acme Ltda." />
-          </div>
+{% block title %}Cadastro - DoneApp{% endblock %}
 
-          <div class="row">
-            <div>
-              <label>Usuário</label>
-              <input type="text" id="username" placeholder="john.doe" />
-            </div>
-            <div>
-              <label>Telefone</label>
-              <input type="tel" id="phone" placeholder="+55 11 99999-9999" />
-            </div>
-          </div>
+{% block content %}
+<div class="logo">
+    <h1>CADASTRO</h1>
+</div>
 
-          <div class="row">
-            <div>
-              <label>E-mail</label>
-              <input type="email" id="email" placeholder="voce@dominio.com" />
-            </div>
-            <div>
-              <label>Confirmar e-mail</label>
-              <input type="email" id="email2" placeholder="voce@dominio.com" />
-            </div>
-          </div>
-
-          <div class="row">
-            <div>
-              <label>Senha</label>
-              <input type="password" id="pwd" placeholder="••••••••" />
-            </div>
-            <div>
-              <label>Confirmar senha</label>
-              <input type="password" id="pwd2" placeholder="••••••••" />
-            </div>
-          </div>
-
-          <div class="checks-wrap">
-            <table class="checks">
-              <tr>
-                <td><input type="checkbox" id="chk_email" /> </td>
-                <td><label for="chk_email">Autenticar por e‑mail</label></td>
-                <td><input type="checkbox" id="chk_sms" /> </td>
-                <td><label for="chk_sms">Autenticar por SMS</label></td>
-              </tr>
-              <tr>
-                <td><input type="checkbox" id="chk_whats" /> </td>
-                <td><label for="chk_whats">Autenticar por WhatsApp</label></td>
-                <td><input type="checkbox" id="chk_phone" /> </td>
-                <td><label for="chk_phone">Autenticar por Phone</label></td>
-              </tr>
-              <tr>
-                <td><input type="checkbox" id="chk_admin" /> </td>
-                <td colspan="3"><label for="chk_admin">Concessão de acesso via adm</label></td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="actions">
-            <button class="btn" type="submit">Sign up</button>
-            <a class="btn secondary" href="/login">Voltar ao login</a>
-          </div>
-          <div id="note" class="note"></div>
-        </div>
-      </form>
-
-      <div class="foot">
-        Já tem conta? <a href="/login">Entrar</a>
-      </div>
+<form id="cadastroForm" method="post" action="/cadastro">
+    <div class="form-group">
+        <label for="nome">Nome Completo</label>
+        <input type="text" id="nome" name="nome" class="form-control" required>
     </div>
-  </div>
+    
+    <div class="form-group">
+        <label for="username">Nome de Usuario</label>
+        <input type="text" id="username" name="username" class="form-control" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" class="form-control" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="telefone">Telefone</label>
+        <input type="tel" id="telefone" name="telefone" class="form-control" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="empresa">Empresa</label>
+        <input type="text" id="empresa" name="empresa" class="form-control" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Senha</label>
+        <input type="password" id="password" name="password" class="form-control" required minlength="6">
+    </div>
+    
+    <div class="form-group">
+        <label for="confirm_password">Confirmar Senha</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+    </div>
+    
+    <div class="form-group">
+        <label>Cadastre-se utilizando:</label>
+        <div style="margin-top: 10px;">
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_sms" style="margin-right: 10px;">
+                SMS
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_whatsapp" style="margin-right: 10px;">
+                WhatsApp
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_phone" style="margin-right: 10px;">
+                Telefone
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_email" style="margin-right: 10px;">
+                E-mail
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_admin" style="margin-right: 10px;">
+                Via Admin
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal;">
+                <input type="checkbox" name="auth_youtube" style="margin-right: 10px;">
+                YouTube
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
+                <input type="checkbox" name="auth_tiktok" disabled style="margin-right: 10px;">
+                TikTok (em breve)
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
+                <input type="checkbox" name="auth_github" disabled style="margin-right: 10px;">
+                GitHub (em breve)
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px; font-weight: normal; opacity: 0.5;">
+                <input type="checkbox" name="auth_facebook" disabled style="margin-right: 10px;">
+                Facebook (em breve)
+            </label>
+        </div>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Criar Conta</button>
+    
+    <div class="status-area">
+        <div class="status-message"></div>
+    </div>
+</form>
 
-  <script>
-    function onSubmit(ev){
-      ev.preventDefault();
-      const note = document.getElementById('note');
-      note.className = 'note ok';
-      note.textContent = 'Cadastro recebido, aguarde liberação';
-      setTimeout(()=>{ window.location.href = '/login'; }, 3000);
-      return false;
-    }
-  </script>
-</body>
-</html>
+<div class="links">
+    <a href="/login">Ja tem conta? Faca login</a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.getElementById('cadastroForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        const username = document.getElementById('username').value;
+        const telefone = document.getElementById('telefone').value;
+        const empresa = document.getElementById('empresa').value;
+        
+        if (password !== confirmPassword) {
+            showStatus('Senhas nao coincidem', 'error');
+            return;
+        }
+        
+        if (password.length < 6) {
+            showStatus('Senha deve ter pelo menos 6 caracteres', 'error');
+            return;
+        }
+        
+        if (username.length < 3) {
+            showStatus('Nome de usuario deve ter pelo menos 3 caracteres', 'error');
+            return;
+        }
+        
+        if (!telefone.trim()) {
+            showStatus('Telefone e obrigatorio', 'error');
+            return;
+        }
+        
+        if (!empresa.trim()) {
+            showStatus('Empresa e obrigatoria', 'error');
+            return;
+        }
+        
+        const email = document.getElementById('email').value;
+        const nome = document.getElementById('nome').value;
+        
+        showStatus('Criando conta...', 'success');
+        
+        // TODO: Implementar cadastro backend
+        setTimeout(() => {
+            showStatus('Cadastro nao implementado ainda', 'error');
+        }, 1000);
+    });
+</script>
+{% endblock %}
