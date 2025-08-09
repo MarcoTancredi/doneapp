@@ -9,12 +9,14 @@ from pathlib import Path
 import asyncio
 import threading
 
-app = FastAPI(title="DoneApp", description="Publicacao Multicanal Automatizada")
+
 
 
 # TOO/APP/MAIAA - App FastAPI principal
 
 app = FastAPI(title="DoneApp", description="Publicacao Multicanal Automatizada")
+
+
 templates = Jinja2Templates(directory="app/templates")
 
 # Criar diretorio static se nao existir

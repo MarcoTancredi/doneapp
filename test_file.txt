@@ -1,0 +1,9 @@
+
+
+# TOO/TST/TSTAA - Arquivo de teste
+
+Este e um arquivo de teste para verificar se o sistema de patches funciona.
+
+
+Data: 2222-22-22
+Status: Teste bem-sucedido
