@@ -1,4 +1,10 @@
 fastapi
 uvicorn[standard]
 jinja2
+
+python-multipart
+
+pyjwt
+
+bcrypt
 python-multipart
