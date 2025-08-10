@@ -9,8 +9,7 @@
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#0f1220;color:#f5f7ff}
     .wrap{max-width:980px;margin:0 auto}
     .card{background:#14182a;border:1px solid #263055;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.35);margin-bottom:16px}
-    input,textarea{border:1px solid #2b365f;background:#0b0f1f;color:#e7ecff;border-radius:12px;padding:10px;width:100%;margin:6px 0}
-    textarea{min-height:96px}
+    input{border:1px solid #2b365f;background:#0b0f1f;color:#e7ecff;border-radius:12px;padding:10px;width:100%;margin:6px 0}
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .row > div{flex:1;min-width:200px}
     button{border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:#7aa2ff;color:#0b0f1f;margin-right:8px;margin-top:8px}
@@ -19,7 +18,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Auth — FastAPI + SQLite + JWT (roles + rate limiting + IP rules)</h1>
+    <h1>Auth — FastAPI + SQLite + JWT (roles + rate limiting)</h1>
 
     <div class="card">
       <h3>Sign up</h3>
@@ -101,32 +100,6 @@
     </div>
 
     <div class="card">
-      <h3>IP rules (admin)</h3>
-      <div class="row">
-        <div>
-          <label>Allowlist (um por linha; suporta wildcard final ex: 10.0.0.*)</label>
-          <textarea id="ip_allow"></textarea>
-        </div>
-        <div>
-          <label>Denylist (um por linha; prioridade sobre allow)</label>
-          <textarea id="ip_deny"></textarea>
-        </div>
-      </div>
-      <button onclick="loadIpLists()">Carregar</button>
-      <button onclick="saveIpLists()">Salvar</button>
-    </div>
-
-    <div class="card">
-      <h3>Security log (admin)</h3>
-      <div class="row">
-        <div><input id="tail_lines" type="number" min="1" value="200" placeholder="linhas"></div>
-      </div>
-      <button onclick="tailLog()">Tail</button>
-      <a id="dl" href="/api/admin/security_log/download" target="_blank"><button>Download</button></a>
-      <button onclick="clearLog()">Clear</button>
-    </div>
-
-    <div class="card">
       <h3>Log</h3>
       <pre id="log"></pre>
     </div>
@@ -159,8 +132,6 @@
         const ra = parseInt(e.retryAfter || '0', 10);
         if (!isNaN(ra) && ra > 0) { log(`Muitas tentativas. Tente novamente em ~${ra}s`); return; }
         log('Muitas tentativas. Aguarde um pouco.');
-      } else if (e && e.status === 403) {
-        log('IP não permitido');
       } else {
         log(e?.message || 'erro');
       }
@@ -290,46 +261,6 @@
         const data = await call('/api/admin/rate_limits', { method:'POST', body: JSON.stringify(body) });
         log(data);
       } catch(e){ showError(e); }
-    }
-
-    async function loadIpLists() {
-      try {
-        const cfg = await call('/api/admin/ip_lists');
-        ip_allow.value = (cfg.allow || []).join('\\n');
-        ip_deny.value  = (cfg.deny  || []).join('\\n');
-        log({ip_lists: cfg});
-      } catch(e){ showError(e); }
-    }
-
-    async function saveIpLists() {
-      try {
-        const allow = ip_allow.value.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
-        const deny  = ip_deny.value.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
-        const data = await call('/api/admin/ip_lists', { method:'POST', body: JSON.stringify({allow, deny}) });
-        log(data);
-      } catch(e){ showError(e); }
-    }
-
-    async function tailLog() {
-      try {
-        const n = parseInt(tail_lines.value || '200', 10);
-        const res = await fetch('/api/admin/security_log?lines=' + (isNaN(n)?200:n), { headers: authHeaders() });
-        const txt = await res.text();
-        if (!res.ok) throw new Error('erro ' + res.status);
-        log(txt);
-      } catch(e){ showError(e); }
-    }
-
-    async function clearLog() {
-      try {
-        const data = await call('/api/admin/security_log/clear', { method:'POST' });
-        log(data);
-      } catch(e){ showError(e); }
-    }
-
-    function authHeaders(){
-      const t = localStorage.getItem(tokenKey);
-      return t ? {'Authorization':'Bearer '+t} : {};
     }
   </script>
 </body>

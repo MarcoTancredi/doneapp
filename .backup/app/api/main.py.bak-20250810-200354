@@ -4,11 +4,11 @@ import os, sqlite3, time, json
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional, Deque, Dict, Tuple, List
+from typing import Optional, Deque, Dict, Tuple
 
 from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from passlib.hash import bcrypt
@@ -23,7 +23,6 @@ DATA_DIR = BASE_DIR / "data"
 DB_PATH  = DATA_DIR / "app.db"
 SEC_LOG  = DATA_DIR / "security.log"
 RL_FILE  = DATA_DIR / "rate_limits.json"
-IP_FILE  = DATA_DIR / "ip_lists.json"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 SECRET_KEY = os.getenv("FASTAPI_SECRET", os.getenv("FASTAPI_SECRET_KEY", "CHANGE-ME-SECRET"))
@@ -66,25 +65,6 @@ def save_rate_limits(cfg: dict) -> None:
     RL_FILE.write_text(json.dumps({k:int(cfg[k]) for k in DEFAULT_RL}, indent=2), encoding="utf-8")
 
 RL = load_rate_limits()
-
-# Allow/Deny IP lists
-def load_ip_lists() -> dict:
-    if IP_FILE.exists():
-        try:
-            data = json.loads(IP_FILE.read_text(encoding="utf-8"))
-            allow = [s.strip() for s in data.get("allow", []) if s.strip()]
-            deny  = [s.strip() for s in data.get("deny", [])  if s.strip()]
-            return {"allow": allow, "deny": deny}
-        except Exception:
-            pass
-    return {"allow": [], "deny": []}
-
-def save_ip_lists(cfg: dict) -> None:
-    allow = [str(x).strip() for x in cfg.get("allow", []) if str(x).strip()]
-    deny  = [str(x).strip() for x in cfg.get("deny", [])  if str(x).strip()]
-    IP_FILE.write_text(json.dumps({"allow": allow, "deny": deny}, indent=2), encoding="utf-8")
-
-IPCFG = load_ip_lists()
 
 # ------------------------ App --------------------------
 app = FastAPI(title="DoneApp API", openapi_url="/api/openapi.json", docs_url="/api/docs")
@@ -169,10 +149,6 @@ class RateLimitsIn(BaseModel):
     distinct_max: Optional[int] = None
     distinct_win: Optional[int] = None
 
-class IpListsIn(BaseModel):
-    allow: Optional[List[str]] = None
-    deny: Optional[List[str]] = None
-
 # ------------------------ Security utils -----------------
 _RL_BUCKETS: Dict[str, Deque[float]] = {}                 # tentativas por IP/ação
 _RL_DISTINCT: Dict[str, Deque[Tuple[float, str]]] = {}    # logins bem-sucedidos por IP/username
@@ -196,8 +172,10 @@ def _bucket(key: str) -> Deque[float]:
     return _RL_BUCKETS.setdefault(key, deque())
 
 def rate_limit(key: str, max_attempts: int, window_sec: int) -> Optional[int]:
+    """Retorna None se OK; ou segundos de espera se bloqueado."""
     now = time.time()
     dq = _bucket(key)
+    # remove eventos fora da janela
     while dq and now - dq[0] > window_sec:
         dq.popleft()
     if len(dq) >= max_attempts:
@@ -207,17 +185,25 @@ def rate_limit(key: str, max_attempts: int, window_sec: int) -> Optional[int]:
     return None
 
 def account_switch_block(ip: str, username: str) -> Optional[int]:
+    """
+    Limita nº de usuários distintos logados com sucesso por IP na janela.
+    Checa *antes* de registrar o sucesso. Retorna segundos até liberar.
+    """
     now = time.time()
     win = RL["distinct_win"]
     mx  = RL["distinct_max"]
     dq  = _RL_DISTINCT.setdefault(ip, deque())
+    # limpa janela
     while dq and now - dq[0][0] > win:
         dq.popleft()
+    # set de distintos atuais
     distinct = {}
     for ts, user in dq:
         if now - ts <= win:
             distinct[user] = ts
+    # se o user já está no set, não aumenta a contagem
     if username not in distinct and len(distinct) >= mx:
+        # tempo até alguém sair da janela
         oldest = min(distinct.values())
         retry_after = int(win - (now - oldest)) + 1
         return max(1, retry_after)
@@ -227,19 +213,6 @@ def account_switch_register(ip: str, username: str) -> None:
     now = time.time()
     dq = _RL_DISTINCT.setdefault(ip, deque())
     dq.append((now, username))
-
-def ip_allowed(ip: str) -> bool:
-    # deny tem prioridade
-    if any(ip == d or (d.endswith(".*") and ip.startswith(d[:-1])) for d in IPCFG["deny"]):
-        return False
-    allow = IPCFG.get("allow", [])
-    if not allow:
-        return True
-    return any(ip == a or (a.endswith(".*") and ip.startswith(a[:-1])) for a in allow)
-
-def enforce_ip_or_403(ip: str):
-    if not ip_allowed(ip):
-        raise HTTPException(status_code=403, detail="IP not allowed")
 
 # ------------------------ Auth helpers -----------------
 def create_access_token(sub: str, role: str, expires: Optional[timedelta] = None) -> str:
@@ -296,7 +269,6 @@ def require_admin(user: str = Depends(get_current_user)) -> str:
 @app.post("/api/signup")
 def api_signup(body: SignUp, request: Request):
     ip = client_ip(request)
-    enforce_ip_or_403(ip)
     ra = rate_limit(f"signup:{ip}", RL["signup_max"], RL["signup_win"])
     if ra:
         sec_log("signup_rate_limited", "blocked", ip=ip)
@@ -323,7 +295,6 @@ def api_signup(body: SignUp, request: Request):
 @app.post("/api/login")
 def api_login(body: Login, request: Request):
     ip = client_ip(request)
-    enforce_ip_or_403(ip)
     ra = rate_limit(f"login:{ip}", RL["login_max"], RL["login_win"])
     if ra:
         sec_log("login_rate_limited", "blocked", user=body.username, ip=ip)
@@ -336,6 +307,7 @@ def api_login(body: Login, request: Request):
             sec_log("login", "invalid", user=body.username, ip=ip)
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
+        # Limite de alternância de contas por IP (somente em sucesso)
         ra2 = account_switch_block(ip, body.username)
         if ra2:
             sec_log("login_switch_block", "blocked", user=body.username, ip=ip, extra=f"distinct>{RL['distinct_max']}")
@@ -344,16 +316,17 @@ def api_login(body: Login, request: Request):
         role = row[1] or "user"
         access  = create_access_token(sub=body.username, role=role)
         refresh = create_refresh_token(sub=body.username)
+
+        # registra alternância (sucesso)
         account_switch_register(ip, body.username)
+
         sec_log("login", "ok", user=body.username, ip=ip, extra=f"role={role}")
         return {"access_token": access, "refresh_token": refresh, "token_type": "bearer", "role": role}
     finally:
         conn.close()
 
 @app.post("/api/token/refresh")
-def token_refresh(body: RefreshIn, request: Request):
-    ip = client_ip(request)
-    enforce_ip_or_403(ip)
+def token_refresh(body: RefreshIn):
     try:
         payload = jwt.decode(body.refresh_token, SECRET_KEY, algorithms=[ALGO])
         if payload.get("type") != "refresh":
@@ -375,7 +348,6 @@ def token_refresh(body: RefreshIn, request: Request):
 @app.post("/api/reset/request")
 def reset_request(body: ResetRequestIn, request: Request):
     ip = client_ip(request)
-    enforce_ip_or_403(ip)
     ra = rate_limit(f"reset:{ip}", RL["reset_max"], RL["reset_win"])
     if ra:
         sec_log("reset_request_rate_limited", "blocked", user=body.username, ip=ip)
@@ -401,7 +373,6 @@ def reset_request(body: ResetRequestIn, request: Request):
 @app.post("/api/reset/confirm")
 def reset_confirm(body: ResetConfirmIn, request: Request):
     ip = client_ip(request)
-    enforce_ip_or_403(ip)
     try:
         payload = jwt.decode(body.token, SECRET_KEY, algorithms=[ALGO])
         if payload.get("type") != "reset":
@@ -491,47 +462,6 @@ def set_rate_limits(body: RateLimitsIn, user: str = Depends(require_admin)):
         save_rate_limits(RL)
         sec_log("rate_limits", "updated", user=user, extra=json.dumps(changed))
     return {"ok": True, "config": RL}
-
-@app.get("/api/admin/ip_lists")
-def get_ip_lists(_: str = Depends(require_admin)):
-    return IPCFG
-
-@app.post("/api/admin/ip_lists")
-def set_ip_lists(body: IpListsIn, user: str = Depends(require_admin)):
-    global IPCFG
-    allow = [s.strip() for s in (body.allow or []) if s and s.strip()]
-    deny  = [s.strip() for s in (body.deny  or []) if s and s.strip()]
-    IPCFG = {"allow": allow, "deny": deny}
-    save_ip_lists(IPCFG)
-    sec_log("ip_lists", "updated", user=user, extra=json.dumps(IPCFG))
-    return {"ok": True, "config": IPCFG}
-
-@app.get("/api/admin/security_log")
-def security_log_tail(lines: int = 200, _: str = Depends(require_admin)):
-    if not SEC_LOG.exists():
-        return PlainTextResponse("", media_type="text/plain")
-    try:
-        text = SEC_LOG.read_text(encoding="utf-8", errors="ignore")
-        rows = text.splitlines()[-max(1, min(10000, lines)):]
-        return PlainTextResponse("\n".join(rows), media_type="text/plain")
-    except Exception:
-        raise HTTPException(status_code=500, detail="cannot read log")
-
-@app.get("/api/admin/security_log/download")
-def security_log_download(_: str = Depends(require_admin)):
-    if not SEC_LOG.exists():
-        return PlainTextResponse("", media_type="text/plain")
-    return FileResponse(str(SEC_LOG), filename="security.log", media_type="text/plain")
-
-@app.post("/api/admin/security_log/clear")
-def security_log_clear(user: str = Depends(require_admin)):
-    try:
-        if SEC_LOG.exists():
-            SEC_LOG.unlink()
-        sec_log("security_log", "cleared", user=user)
-        return {"ok": True}
-    except Exception:
-        raise HTTPException(status_code=500, detail="cannot clear log")
 
 @app.post("/api/setup/admin_once")
 def admin_once(body: SeedAdminIn):
