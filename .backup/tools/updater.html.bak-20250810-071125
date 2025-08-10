@@ -132,42 +132,12 @@
     async function doCommit() {
       const btn = $('commitBtn'); cooldown(btn);
       const workspace = $('workspace').value.trim();
-      // defaults dos inputs
-      let name  = $('gitUser').value.trim()  || 'MarcoTancredi';
-      let email = $('gitEmail').value.trim() || 'Marco@PlanetaMicro.com.br';
+      const name  = $('gitUser').value.trim()  || 'MarcoTancredi';
+      const email = $('gitEmail').value.trim() || 'Marco@PlanetaMicro.com.br';
 
-      // helper local: UM único prompt "Nome <email>" ou "Nome;email"
-      function promptGitIdentity(defaultName, defaultEmail) {
-        const pre = `${defaultName} <${defaultEmail}>`;
-        const ans = window.prompt(
-          "Informe Nome e E-mail (ex: Nome <email> ou Nome;email):",
-          pre
-        );
-        if (ans === null) return null;
-        const s = ans.trim();
-        let nm = defaultName, em = defaultEmail;
-        const m = s.match(/^(.+?)\s*<([^>]+)>$/);
-        if (m) { nm = m[1].trim(); em = m[2].trim(); }
-        else {
-          const parts = s.split(/[,;|]/);
-          if (parts.length >= 2) { nm = parts[0].trim(); em = parts[1].trim(); }
-          else if (s.includes('@')) { em = s; }
-          else { nm = s; }
-        }
-        if (!nm || !em) return null;
-        return { name: nm, email: em };
-      }
-
-      // só pede Nome/E-mail se ainda não tiver git init
+      // garante repo inicializado (sem prompt)
       const st = await pingStatus();
       if (!st || !st.git_inited) {
-        const id = promptGitIdentity(name, email);
-        if (!id) { $('log').textContent = 'git init cancelado'; setBtnState(btn,'red'); return; }
-        name = id.name; email = id.email;
-        // grava nos inputs para persistir os defaults
-        $('gitUser').value = name;
-        $('gitEmail').value = email;
-
         try {
           const r = await fetch(baseUrl() + '/git/init', {
             method:'POST', headers:{'Content-Type':'application/json'},
