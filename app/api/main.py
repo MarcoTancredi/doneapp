@@ -1,56 +1,40 @@
+
 from __future__ import annotations
-import os
-import sqlite3
+import os, sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from passlib.hash import bcrypt
-import jwt  # PyJWT
+import jwt
 from dotenv import load_dotenv
 
-# --- Config & Paths ---------------------------------------------------------
-
-# Carrega variáveis de ambiente do .env (se existir)
+# ------------------------ Config ------------------------
 load_dotenv()
 
-# Raiz do repo: .../app/api/main.py -> parents[2] = raiz
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
-DB_PATH = DATA_DIR / "app.db"
+DB_PATH  = DATA_DIR / "app.db"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Segredo e tempos (com defaults seguros)
 SECRET_KEY = os.getenv("FASTAPI_SECRET", os.getenv("FASTAPI_SECRET_KEY", "CHANGE-ME-SECRET"))
 ALGO = "HS256"
-try:
-    ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("ACCESS_TOKEN_EXPIRE_HOURS", "8"))
-except ValueError:
-    ACCESS_TOKEN_EXPIRE_HOURS = 8
+def _int(env, default): 
+    try: return int(os.getenv(env, str(default)))
+    except: return default
+ACCESS_TOKEN_EXPIRE_HOURS = _int("ACCESS_TOKEN_EXPIRE_HOURS", 8)
+REFRESH_TOKEN_EXPIRE_DAYS = _int("REFRESH_TOKEN_EXPIRE_DAYS", 7)
+DEV_ALLOW_SEED_ADMIN = os.getenv("DEV_ALLOW_SEED_ADMIN", "false").lower() in ("1","true","yes","on")
 
-try:
-    REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
-except ValueError:
-    REFRESH_TOKEN_EXPIRE_DAYS = 7
-
-# --- App --------------------------------------------------------------------
-
+# ------------------------ App --------------------------
 app = FastAPI(title="DoneApp API", openapi_url="/api/openapi.json", docs_url="/api/docs")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Static em /web e / servindo index.html
 WEB_DIR = BASE_DIR / "app" / "web"
 WEB_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
@@ -59,34 +43,42 @@ app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 def root_index():
     return FileResponse(WEB_DIR / "index.html")
 
-# --- DB Helpers -------------------------------------------------------------
-
+# ------------------------ DB ---------------------------
 def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH))
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
-def init_db() -> None:
+def init_db():
     conn = get_db()
     try:
-        conn.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              username TEXT UNIQUE NOT NULL,
-              password_hash TEXT NOT NULL,
-              created_at TEXT NOT NULL
-            );
-            """
-        )
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          role TEXT NOT NULL DEFAULT 'user'
+        );
+        """)
         conn.commit()
     finally:
         conn.close()
 
+def run_migrations():
+    conn = get_db()
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "role" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
+            conn.commit()
+    finally:
+        conn.close()
+
 init_db()
+run_migrations()
 
-# --- Schemas ----------------------------------------------------------------
-
+# ------------------------ Schemas ----------------------
 class SignUp(BaseModel):
     username: str
     password: str
@@ -98,12 +90,18 @@ class Login(BaseModel):
 class RefreshIn(BaseModel):
     refresh_token: str
 
-# --- Auth Helpers -----------------------------------------------------------
+class ChangePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
 
-def create_access_token(sub: str, expires_delta: Optional[timedelta] = None) -> str:
+class SeedAdminIn(BaseModel):
+    username: str
+
+# ------------------------ Auth helpers -----------------
+def create_access_token(sub: str, role: str, expires: Optional[timedelta] = None) -> str:
     now = datetime.now(timezone.utc)
-    exp = now + (expires_delta or timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS))
-    payload = {"sub": sub, "type": "access", "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
+    exp = now + (expires or timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS))
+    payload = {"sub": sub, "role": role, "type": "access", "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGO)
 
 def create_refresh_token(sub: str) -> str:
@@ -113,31 +111,38 @@ def create_refresh_token(sub: str) -> str:
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGO)
 
 def verify_password(pw: str, pw_hash: str) -> bool:
-    try:
-        return bcrypt.verify(pw, pw_hash)
-    except Exception:
-        return False
+    try: return bcrypt.verify(pw, pw_hash)
+    except: return False
 
 def get_current_user(request: Request) -> str:
     auth = request.headers.get("Authorization") or ""
     if not auth.lower().startswith("bearer "):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
-    token = auth.split(" ", 1)[1].strip()
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = auth.split(" ",1)[1].strip()
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGO])
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
         sub = payload.get("sub")
-        if not sub:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
+        if not sub: raise HTTPException(status_code=401, detail="Invalid token payload")
         return str(sub)
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-# --- Routes -----------------------------------------------------------------
+def require_admin(user: str = Depends(get_current_user)) -> str:
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT role FROM users WHERE username=?", (user,)).fetchone()
+        role = row[0] if row else "user"
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Admin only")
+        return user
+    finally:
+        conn.close()
 
+# ------------------------ Routes -----------------------
 @app.post("/api/signup")
 def api_signup(body: SignUp):
     if not body.username or not body.password:
@@ -147,7 +152,7 @@ def api_signup(body: SignUp):
         pw_hash = bcrypt.hash(body.password)
         conn.execute(
             "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
-            (body.username, pw_hash, datetime.utcnow().isoformat() + "Z"),
+            (body.username, pw_hash, datetime.utcnow().isoformat()+"Z"),
         )
         conn.commit()
         return {"ok": True}
@@ -160,13 +165,13 @@ def api_signup(body: SignUp):
 def api_login(body: Login):
     conn = get_db()
     try:
-        row = conn.execute("SELECT password_hash FROM users WHERE username = ?", (body.username,)).fetchone()
+        row = conn.execute("SELECT password_hash, role FROM users WHERE username = ?", (body.username,)).fetchone()
         if not row or not verify_password(body.password, row[0]):
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        # Retorna access + refresh
-        access = create_access_token(sub=body.username)
+        role = row[1] or "user"
+        access  = create_access_token(sub=body.username, role=role)
         refresh = create_refresh_token(sub=body.username)
-        return {"access_token": access, "refresh_token": refresh, "token_type": "bearer"}
+        return {"access_token": access, "refresh_token": refresh, "token_type": "bearer", "role": role}
     finally:
         conn.close()
 
@@ -176,10 +181,16 @@ def token_refresh(body: RefreshIn):
         payload = jwt.decode(body.refresh_token, SECRET_KEY, algorithms=[ALGO])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
-        sub = payload.get("sub")
-        if not sub:
-            raise HTTPException(status_code=401, detail="Invalid token payload")
-        return {"access_token": create_access_token(sub=str(sub)), "token_type": "bearer"}
+        sub = str(payload.get("sub") or "")
+        if not sub: raise HTTPException(status_code=401, detail="Invalid refresh token")
+        # pega role atual do banco (fonte da verdade)
+        conn = get_db()
+        try:
+            row = conn.execute("SELECT role FROM users WHERE username=?", (sub,)).fetchone()
+            role = (row[0] if row else "user")
+        finally:
+            conn.close()
+        return {"access_token": create_access_token(sub=sub, role=role), "token_type": "bearer"}
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expired")
     except Exception:
@@ -189,13 +200,59 @@ def token_refresh(body: RefreshIn):
 def api_me(user: str = Depends(get_current_user)):
     return {"user": user}
 
+@app.get("/api/users/me")
+def users_me(user: str = Depends(get_current_user)):
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT username, role, created_at FROM users WHERE username=?", (user,)).fetchone()
+        if not row: raise HTTPException(status_code=404, detail="User not found")
+        return {"username": row[0], "role": row[1], "created_at": row[2]}
+    finally:
+        conn.close()
+
+@app.post("/api/change_password")
+def change_password(body: ChangePasswordIn, user: str = Depends(get_current_user)):
+    if not body.current_password or not body.new_password:
+        raise HTTPException(status_code=400, detail="Missing fields")
+    conn = get_db()
+    try:
+        row = conn.execute("SELECT password_hash FROM users WHERE username=?", (user,)).fetchone()
+        if not row or not verify_password(body.current_password, row[0]):
+            raise HTTPException(status_code=401, detail="Invalid current password")
+        new_hash = bcrypt.hash(body.new_password)
+        conn.execute("UPDATE users SET password_hash=? WHERE username=?", (new_hash, user))
+        conn.commit()
+        return {"ok": True}
+    finally:
+        conn.close()
+
+@app.get("/api/admin/ping")
+def admin_ping(user: str = Depends(require_admin)):
+    return {"admin": user, "ok": True}
+
+@app.post("/api/setup/admin_once")
+def admin_once(body: SeedAdminIn):
+    if not DEV_ALLOW_SEED_ADMIN:
+        raise HTTPException(status_code=403, detail="Seed admin disabled")
+    conn = get_db()
+    try:
+        has_admin = conn.execute("SELECT 1 FROM users WHERE role='admin' LIMIT 1").fetchone()
+        if has_admin:
+            raise HTTPException(status_code=400, detail="Admin already exists")
+        u = body.username.strip()
+        if not u:
+            raise HTTPException(status_code=400, detail="username required")
+        updated = conn.execute("UPDATE users SET role='admin' WHERE username=?", (u,)).rowcount
+        conn.commit()
+        if updated == 0:
+            raise HTTPException(status_code=404, detail="username not found")
+        return {"ok": True, "admin": u}
+    finally:
+        conn.close()
+
 @app.post("/api/logout")
 def api_logout():
-    # Logout é client-side (descartar token). Sem blacklist aqui.
     return {"ok": True}
-
-# --- Health -----------------------------------------------------------------
 
 @app.get("/api/healthz")
-def healthz():
-    return {"ok": True}
+def healthz(): return {"ok": True}

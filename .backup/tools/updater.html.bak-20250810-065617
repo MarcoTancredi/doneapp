@@ -27,6 +27,10 @@
       <input id="endpoint" type="text" value="http://localhost:5000/apply" placeholder="Endpoint (ex.: http://localhost:5000/apply)" />
     </div>
     <div class="row">
+      <input id="workspace" type="text" value="D:\bin\DoneApp" placeholder="Workspace root (ex.: C:\projetos\play)" />
+      <input id="endpoint" type="text" value="http://localhost:5000/apply" placeholder="Endpoint (ex.: http://localhost:5000/apply)" />
+    </div>
+    <div class="row">
       <input id="gitUser"  type="text" value="MarcoTancredi" placeholder="git user.name (default)" />
       <input id="gitEmail" type="text" value="Marco@PlanetaMicro.com.br" placeholder="git user.email (default)" />
     </div>
