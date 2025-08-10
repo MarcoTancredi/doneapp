@@ -1,0 +1,9 @@
+conda activate py312
+
+powershell -ExecutionPolicy Bypass -File tools\dev.ps1
+
+pause
+
+pause
+
+pause

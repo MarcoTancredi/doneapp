@@ -1,0 +1,9 @@
+{
+  "name": "doneapp",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "dev": "node src\\\\app\\\\hello.js"
+  }
+}

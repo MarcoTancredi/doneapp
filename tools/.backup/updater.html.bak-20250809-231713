@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Atualizador de Arquivos — Protocolo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#0f1220;color:#f5f7ff}    .card{background:#14182a;border:1px solid #263055;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.35);}
+    textarea{width:100%;height:320px;border-radius:12px;border:1px solid #2b365f;background:#0b0f1f;color:#e7ecff;padding:12px;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+    input[type=text]{flex:1;min-width:280px;border-radius:12px;border:1px solid #2b365f;background:#0b0f1f;color:#e7ecff;padding:10px}
+    .btn{border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:#7aa2ff;color:#0b0f1f}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .btn.green{background:#54d988;color:#092515}
+    .btn.red{background:#ff7a7a;color:#2a0b0b}
+    .btn.blue{background:#7aa2ff;color:#0b0f1f}
+    .muted{color:#9fb2ff;font-size:12px}
+    pre{white-space:pre-wrap;background:#0b0f1f;border:1px solid #2b365f;border-radius:12px;padding:10px}  </style>
+</head>
+<body>
+  <h1>Atualizador de Arquivos — Protocolo</h1>
+  <div class="card">
+    <div class="row">
+      <input id="workspace" type="text" placeholder="Workspace root (ex.: C:\projetos\play)" />
+      <input id="endpoint" type="text" placeholder="Endpoint do servidor (ex.: http://127.0.0.1:5000/apply)" />
+      <button id="sendBtn">Aplicar</button>
+    </div>    <div class="row">
+      <input id="workspace" type="text" value="d:\bin\appdone" placeholder="Workspace root (ex.: C:\projetos\play)" />
+      <input id="endpoint" type="text" value="http://localhost:5000/apply" placeholder="Endpoint do servidor (ex.: http://127.0.0.1:5000/apply)" />
+      <button id="sendBtn" class="btn blue">Aplicar</button>
+      <button id="condaBtn" class="btn">Conda</button>
+      <button id="serverBtn" class="btn">Server</button>
+      <button id="commitBtn" class="btn">Commit</button>
+      <button id="clearBtn" class="btn">Clear</button>
+    </div>
+    <textarea id="protocol" placeholder="# Cole aqui o protocolo..."></textarea>    <textarea id="protocol" placeholder="# Cole aqui o protocolo..."></textarea>
+    <p class="muted">O conteúdo será enviado via <code>POST</code> para <em>/apply</em>. O servidor Python valida que os caminhos estão contidos no <strong>workspace</strong>.</p>
+    <h3>Log</h3>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    async function apply() {
+      const endpoint = document.getElementById('endpoint').value.trim();
+      const workspace = document.getElementById('workspace').value.trim();
+      const payload = {
+        workspace_root: workspace,
+        protocol_text: document.getElementById('protocol').value
+      };
+      try {
+        const res = await fetch(endpoint, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        document.getElementById('log').textContent = data.output || JSON.stringify(data, null, 2);
+      } catch (e) {
+        document.getElementById('log').textContent = "Erro: " + e.message;
+      }
+    }
+    document.getElementById('sendBtn').addEventListener('click', apply);
+  </script>
+
+  <details style="margin-top:16px">
+    <summary>Formato do Protocolo (resumo)</summary>
+    <pre>
+#Action: [FileNew|FileDelete|TextInsert|TextDelete|TextModify]
+#Target: caminho/arquivo.ext (relativo ao workspace)
+=> Log/print Action File Inicio
+
+#BeginBeforeLines
+... linhas de ancoragem anteriores
+#EndBeforeLines
+#BeginActionText
+... linhas a serem EXCLUIDAS (para TextDelete/TextModify) ou VAZIAS
+#EndActionText
+#BeginAfterLines
+... linhas de ancoragem posteriores
+#EndAfterLines
+#BeginSubject
+... linhas a inserir entre as âncoras (#EndBeforeLines e #BeginAfterLines)
+#EndSubject
+
+Se houver mais modificações no MESMO arquivo, repita os blocos de âncoras/subject.
+#ActionEnded
+=> Log/Print Action File ... finalizada
+    </pre>
+  </details>
+</body>
+</html>
