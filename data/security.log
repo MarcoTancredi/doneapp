@@ -1,0 +1,6 @@
+2025-08-10T22:36:15.869311Z action=login status=invalid user=marco ip=127.0.0.1 
+2025-08-10T22:36:26.487452Z action=login status=invalid user=john ip=127.0.0.1 
+2025-08-10T22:36:37.660236Z action=login status=invalid user=ric ip=127.0.0.1 
+2025-08-10T22:36:45.252213Z action=login status=invalid user=ubu ip=127.0.0.1 
+2025-08-10T22:36:54.753116Z action=login status=invalid user=kaksddswssd ip=127.0.0.1 
+2025-08-10T22:37:05.425771Z action=login_rate_limited status=blocked user=kaksddswsa ip=127.0.0.1 
