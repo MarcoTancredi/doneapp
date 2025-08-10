@@ -1,3 +1,9 @@
+# apply_changes.py — Protocolo ÚNICO (ACR) + FileNew/FileDelete
+# - Âncora “sagrada” (intocável) com busca tolerante a linhas em branco
+# - Cut opcional
+# - Replace com \n no início e no fim
+# - Backups em .backup/<relpath>.bak-YYYYmmdd-HHMMSS
+# - Endpoints: /apply, /status, /restart, /git/init, /git/commit
 from __future__ import annotations
 import os, re, time, subprocess
 from pathlib import Path
@@ -6,7 +12,7 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# CORS básico
+# --- CORS básico: autoriza chamadas do updater.html (file://) para http://localhost:5000 ---
 @app.after_request
 def add_cors_headers(resp):
     resp.headers['Access-Control-Allow-Origin'] = '*'
@@ -20,18 +26,19 @@ def apply_options():
 
 CURRENT_WORKSPACE_ROOT: Optional[Path] = None
 
-# Marcadores / gramática
+# Protocolo Único
 ACTION_RE   = re.compile(r'^#Action:\s*(FileNew|FileDelete|TextModify)\s*$', re.I)
 TARGET_RE   = re.compile(r'^#Target:\s*(.+?)\s*$')
 END_ACTION  = '#ActionEnded'
 
+# Marcadores ACR
 ANCHOR_BEG  = '#BeginAnchor'
 ANCHOR_END  = '#EndAnchor'
 CUT_BEG     = '#BeginCut'
 CUT_END     = '#EndCut'
 REPL_BEG    = '#BeginReplace'
 REPL_END    = '#EndReplace'
-
+# FileNew subject
 SUBJ_BEG    = '#BeginSubject'
 SUBJ_END    = '#EndSubject'
 
@@ -42,6 +49,8 @@ def _norm_inside(root: Path, target: str) -> Path:
     return p
 
 def _read_block(lines: List[str], start_marker: str, end_marker: str) -> Tuple[List[str], int]:
+    """Lê bloco (mantém linhas como estão), retorna (conteúdo, offset a partir do início de 'lines').
+       Se start não for encontrado, retorna ([], -1)."""
     content = []
     i = 0
     while i < len(lines) and lines[i].strip() != start_marker:
@@ -50,6 +59,7 @@ def _read_block(lines: List[str], start_marker: str, end_marker: str) -> Tuple[L
         return [], -1
     i += 1
     while i < len(lines) and lines[i].strip() != end_marker:
+        # preserva linha crua (sem \r\n finais)
         content.append(lines[i].rstrip('\r\n'))
         i += 1
     if i == len(lines):
@@ -58,34 +68,36 @@ def _read_block(lines: List[str], start_marker: str, end_marker: str) -> Tuple[L
     return content, i
 
 def _wrap_subject(s: str) -> str:
-    if not s.startswith('\n'):
-        s = '\n' + s
-    if not s.endswith('\n'):
-        s = s + '\n'
-    return s
+    """Garante \n no início e no fim do subject/replace para não colar no entorno."""
+    out = s
+    if not out.startswith('\n'):
+        out = '\n' + out
+    if not out.endswith('\n'):
+        out = out + '\n'
+    return out
 
 def _anchor_to_pattern(anchor_lines: List[str]) -> str:
-    """Âncora tolera linhas em branco ENTRE linhas não vazias; captura como grupo 1."""
+    """Gera regex tolerante a linhas em branco ENTRE as linhas não-vazias da âncora."""
     nonblank = [ln for ln in anchor_lines if ln.strip() != ""]
     if not nonblank:
-        return "()"  # âncora vazia (não recomendado) → match zero-largura
+        # âncora vazia: não recomendamos, mas consideramos match zero-largura
+        return r"()"
+    sep = r"(?:[ \t]*\r?\n[ \t]*)*"
+    parts = [re.escape(ln) for ln in nonblank]
+    # capturamos âncora inteira como grupo 1
+    return "(" + sep.join(parts) + ")"
+
+def _cut_to_pattern(cut_lines: List[str]) -> str:
+    nonblank = [ln for ln in cut_lines if ln.strip() != ""]
+    if not nonblank:
+        # cut vazio: também vira grupo (pouco usual)
+        return "(" + r"" + ")"
     sep = r"(?:[ \t]*\r?\n[ \t]*)*"
     parts = [re.escape(ln) for ln in nonblank]
     return "(" + sep.join(parts) + ")"
 
-def _cut_to_strict_regex(cut_lines: List[str]) -> re.Pattern:
-    """
-    Cut: match EXATO de linhas contíguas (sem ignorar linhas em branco).
-    Trabalhamos só com linhas inteiras; não editamos dentro da linha.
-    Capturamos o bloco inteiro como grupo 1, incluindo fronteiras de linha.
-    """
-    if not cut_lines:
-        return re.compile("()")
-    esc = [re.escape(ln) for ln in cut_lines]
-    body = r"(?:^|\n)" + r"\r?\n".join(esc) + r"(?:\r?\n|$)"
-    return re.compile("(" + body + ")", re.DOTALL)
-
 def _backup_dest(src: Path, root: Optional[Path], ts: str) -> Path:
+    """Destino .backup preservando estrutura relativa a partir do root."""
     if root:
         try:
             rel = src.relative_to(root)
@@ -97,7 +109,8 @@ def _backup_dest(src: Path, root: Optional[Path], ts: str) -> Path:
     base.parent.mkdir(parents=True, exist_ok=True)
     return base.with_name(base.name + f".bak-{ts}")
 
-def _parse_actions(proto_text: str):
+def _parse_protocol(proto_text: str):
+    """Quebra o protocolo em ações."""
     lines = [ln.rstrip('\r\n') for ln in proto_text.splitlines()]
     i = 0
     actions = []
@@ -114,18 +127,24 @@ def _parse_actions(proto_text: str):
             raise ValueError("Esperado '#Target:' após '#Action:'")
         target = TARGET_RE.match(lines[i].strip()).group(1)
         i += 1
+
+        # coletar blocos até #ActionEnded
         block_lines = []
         while i < len(lines) and lines[i].strip() != END_ACTION:
-            block_lines.append(lines[i]); i += 1
+            block_lines.append(lines[i])
+            i += 1
         if i == len(lines):
             raise ValueError("Missing #ActionEnded")
-        i += 1
+        i += 1  # pula #ActionEnded
+
         actions.append({"action": action, "target": target, "block_lines": block_lines})
     return actions
 
 def _apply_filenew(file_path: Path, block_lines: List[str], log: List[str], ts: str):
+    # Lê Subject
     subject, _ = _read_block(block_lines, SUBJ_BEG, SUBJ_END)
-    text = _wrap_subject("\n".join(subject))
+    text = "\n".join(subject)
+    text = _wrap_subject(text)
     if file_path.exists():
         backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
         file_path.replace(backup)
@@ -143,85 +162,64 @@ def _apply_filedelete(file_path: Path, log: List[str], ts: str):
     log.append(f"FileDelete OK (arquivo movido para backup): {backup}")
 
 def _apply_textmodify(file_path: Path, block_lines: List[str], log: List[str], ts: str):
-    # Anchor (opcional), Cut (opcional/obrigatório sem âncora), Replace (obrigatório)
-    anchor, _ = _read_block(block_lines, ANCHOR_BEG, ANCHOR_END)
-    cut, _    = _read_block(block_lines, CUT_BEG, CUT_END)
-    repl, _   = _read_block(block_lines, REPL_BEG, REPL_END)
-    if not anchor and not cut:
-        raise ValueError("TextModify requer Anchor ou Cut")
-    if not repl:
-        raise ValueError("TextModify requer Replace")
+    # Blocos ACR
+    anchor, off = _read_block(block_lines, ANCHOR_BEG, ANCHOR_END)
+    if off == -1 or not anchor:
+        raise ValueError("TextModify requer bloco Anchor")
+    cut, off2 = _read_block(block_lines, CUT_BEG, CUT_END)
+    replace, off3 = _read_block(block_lines, REPL_BEG, REPL_END)
+    if off3 == -1:
+        raise ValueError("TextModify requer bloco Replace")
 
     original = file_path.read_text(encoding="utf-8")
     new_text = original
-    insert_text = _wrap_subject("\n".join(repl))
 
-    if anchor:
-        # localizar âncora (tolerante a linhas em branco)
-        anchor_pat = _anchor_to_pattern(anchor)
-        anchor_re  = re.compile(anchor_pat, re.DOTALL)
-        m_anchor   = anchor_re.search(new_text)
-        if not m_anchor:
-            log.append("[NÃO ACHADO] Âncora não encontrada")
-            return
-        anc_start, anc_end = m_anchor.span(1)
-        anchor_real = new_text[anc_start:anc_end]  # sagrada
-        right = new_text[anc_end:]
+    # Regex tolerante com captura das porções reais para preservar bytes originais
+    anchor_pat = _anchor_to_pattern(anchor)
+    cut_pat    = _cut_to_pattern(cut) if cut else None
 
-        if cut:
-            cut_re = _cut_to_strict_regex(cut)
-            m_cut = cut_re.search(right)
-            if m_cut:
-                c0, c1 = m_cut.span(1)
-                right2 = right[:c0] + insert_text + right[c1:]
-                new_text_final = new_text[:anc_start] + anchor_real + right2
-                if new_text_final != original:
-                    backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
-                    backup.write_text(original, encoding="utf-8")
-                    file_path.write_text(new_text_final, encoding="utf-8")
-                    log.append(f"Backup do original: {backup}")
-                    log.append("[OK] Cut encontrado e substituído por Replace (ancorado)")
-                else:
-                    log.append("Nenhuma alteração aplicada.")
-            else:
-                # Cut não encontrado após âncora -> inserir após âncora
-                new_text_final = new_text[:anc_end] + insert_text + new_text[anc_end:]
-                if new_text_final != original:
-                    backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
-                    backup.write_text(original, encoding="utf-8")
-                    file_path.write_text(new_text_final, encoding="utf-8")
-                    log.append(f"Backup do original: {backup}")
-                    log.append("[INFO] Cut não encontrado; inserido Replace após âncora")
-                else:
-                    log.append("Nenhuma alteração aplicada.")
+    # Encontrar âncora
+    # Estrutura: (ÂNCORA_TOLERANTE)(?P<mid>.*?)(DEMAIS)
+    # Depois, dentro do trecho após âncora, buscamos CUT tolerante.
+    anchor_re = re.compile(anchor_pat, re.DOTALL)
+    m_anchor = anchor_re.search(new_text)
+    if not m_anchor:
+        log.append("[NÃO ACHADO] Âncora não encontrada")
+        return
+
+    # Fatias
+    anc_start, anc_end = m_anchor.span(1)
+    anchor_real = new_text[anc_start:anc_end]  # bytes reais da âncora, preservados
+
+    right_side = new_text[anc_end:]  # após âncora
+    insert_text = _wrap_subject("\n".join(replace))
+
+    replaced_right = None
+    if cut and cut_pat:
+        cut_re = re.compile(cut_pat, re.DOTALL)
+        m_cut = cut_re.search(right_side)
+        if m_cut:
+            c_start, c_end = m_cut.span(1)
+            # substitui o CUT por Replace
+            replaced_right = right_side[:c_start] + insert_text + right_side[c_end:]
+            log.append("[OK] Cut encontrado e substituído por Replace")
         else:
-            # Só âncora -> inserir após âncora
-            new_text_final = new_text[:anc_end] + insert_text + new_text[anc_end:]
-            if new_text_final != original:
-                backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
-                backup.write_text(original, encoding="utf-8")
-                file_path.write_text(new_text_final, encoding="utf-8")
-                log.append(f"Backup do original: {backup}")
-                log.append("[OK] Inserido Replace após âncora")
-            else:
-                log.append("Nenhuma alteração aplicada.")
+            log.append("[INFO] Cut não encontrado; inserido Replace após âncora")
+    if replaced_right is None:
+        # Inserir Replace logo após âncora
+        replaced_right = insert_text + right_side
+
+    # Monta texto final preservando âncora intocada
+    new_text_final = new_text[:anc_start] + anchor_real + replaced_right
+
+    if new_text_final != original:
+        backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
+        backup.write_text(original, encoding="utf-8")
+        file_path.write_text(new_text_final, encoding="utf-8")
+        log.append(f"Backup do original: {backup}")
+        log.append("[OK] TextModify aplicado (ACR)")
     else:
-        # Sem âncora: Cut obrigatório; substitui a primeira ocorrência global (linhas inteiras)
-        cut_re = _cut_to_strict_regex(cut)
-        m_cut = cut_re.search(new_text)
-        if not m_cut:
-            log.append("[NÃO ACHADO] Cut não encontrado (sem âncora)")
-            return
-        c0, c1 = m_cut.span(1)
-        new_text_final = new_text[:c0] + insert_text + new_text[c1:]
-        if new_text_final != original:
-            backup = _backup_dest(file_path, CURRENT_WORKSPACE_ROOT, ts)
-            backup.write_text(original, encoding="utf-8")
-            file_path.write_text(new_text_final, encoding="utf-8")
-            log.append(f"Backup do original: {backup}")
-            log.append("[OK] Cut global substituído por Replace")
-        else:
-            log.append("Nenhuma alteração aplicada.")
+        log.append("Nenhuma alteração aplicada.")
 
 @app.get("/status")
 def status():
@@ -273,13 +271,7 @@ def git_commit():
 
 @app.post("/restart")
 def restart():
-    # responde 200 primeiro, depois encerra o processo
-    import threading, time as _t
-    def _exit_later():
-        _t.sleep(0.2)
-        os._exit(0)
-    threading.Thread(target=_exit_later, daemon=True).start()
-    return jsonify({"ok": True, "message": "restarting"}), 200
+    os._exit(0)
 
 @app.post("/apply")
 def apply_changes():
@@ -292,7 +284,7 @@ def apply_changes():
     CURRENT_WORKSPACE_ROOT = workspace_root
 
     ts = time.strftime("%Y%m%d-%H%M%S")
-    actions = _parse_actions(protocol_text)
+    actions = _parse_protocol(protocol_text)
 
     for a in actions:
         act = a["action"]; target = a["target"]; blocks = a["block_lines"]
@@ -323,4 +315,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(f"* Servindo em http://{args.host}:{args.port}  (POST /apply)")
     app.run(host=args.host, port=args.port)
-    

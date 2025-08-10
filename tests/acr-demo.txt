@@ -1,0 +1,15 @@
+
+A
+B
+ANCHOR 1
+
+ANCHOR 2
+
+
+INSERID
+EOF OK
+O 1
+INSERIDO 2
+
+C = 20
+D

@@ -148,15 +148,9 @@
     }
 
     function clearAll() {
-      const btn = $('clearBtn');
-      cooldown(btn);
-      $('protocol').value = '';
-      $('log').textContent = '';
-      // todos os botões voltam à cor padrão (azul)
-      ['sendBtn','condaBtn','serverBtn','restartBtn','commitBtn','clearBtn'].forEach(id => {
-        const el = $(id);
-        if (el) setBtnState(el, 'blue');
-      });
+      const btn = $('clearBtn'); cooldown(btn);
+      $('protocol').value = ''; $('log').textContent = '';
+      setBtnState($('sendBtn'), 'blue');
     }
 
     $('sendBtn').addEventListener('click', apply);

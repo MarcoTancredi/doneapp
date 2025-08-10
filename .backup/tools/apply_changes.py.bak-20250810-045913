@@ -273,13 +273,7 @@ def git_commit():
 
 @app.post("/restart")
 def restart():
-    # responde 200 primeiro, depois encerra o processo
-    import threading, time as _t
-    def _exit_later():
-        _t.sleep(0.2)
-        os._exit(0)
-    threading.Thread(target=_exit_later, daemon=True).start()
-    return jsonify({"ok": True, "message": "restarting"}), 200
+    os._exit(0)
 
 @app.post("/apply")
 def apply_changes():

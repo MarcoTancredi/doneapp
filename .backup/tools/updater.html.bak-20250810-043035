@@ -23,7 +23,7 @@
   <h1>Atualizador de Arquivos — Protocolo Único (ACR)</h1>
   <div class="card">
     <div class="row">
-      <input id="workspace" type="text" value="D:\bin\DoneApp" placeholder="Workspace root (ex.: C:\projetos\play)" />
+      <input id="workspace" type="text" value="d:\bin\appdone" placeholder="Workspace root (ex.: C:\projetos\play)" />
       <input id="endpoint" type="text" value="http://localhost:5000/apply" placeholder="Endpoint (ex.: http://localhost:5000/apply)" />
     </div>
     <div class="row">
@@ -35,7 +35,7 @@
       <button id="clearBtn"   class="btn">Clear</button>
     </div>
     <textarea id="protocol" placeholder="# Cole aqui o protocolo ACR..."></textarea>
-    <p class="muted">Âncora é opcional e <strong>sagrada</strong> — jamais alterada. Cut é por <strong>linhas inteiras</strong>.</p>
+    <p class="muted">O conteúdo será enviado via <code>POST</code> para <em>/apply</em>. A âncora é sagrada e nunca é alterada.</p>
     <h3>Log</h3>
     <pre id="log"></pre>
   </div>
@@ -66,7 +66,7 @@
 
     async function apply() {
       const btn = $('sendBtn');
-      cooldown(btn); setBtnState(btn, 'green'); // verde ao clicar
+      cooldown(btn); setBtnState(btn, 'green'); // fica verde ao clicar
       const endpoint = $('endpoint').value.trim();
       const workspace = $('workspace').value.trim();
       const payload = { workspace_root: workspace, protocol_text: $('protocol').value };
@@ -107,19 +107,13 @@
 
     async function doRestart() {
       const btn = $('restartBtn');
-      // fica verde ao clicar e volta para AZUL após 3s
-      setBtnState(btn, 'green');
-      cooldown(btn, 'blue');
+      cooldown(btn, 'green'); // após 3s, volta habilitado e em VERDE
       try {
-        const res = await fetch(baseUrl() + '/restart', { method:'POST' });
-        if (res && res.ok) {
-          $('log').textContent = 'Restart solicitado (o runner relança o servidor).';
-        } else {
-          $('log').textContent = 'Restart solicitado.';
-        }
+        await fetch(baseUrl() + '/restart', { method:'POST' });
+        $('log').textContent = 'Restart solicitado (o runner relança o servidor).';
       } catch(e) {
-        // se o processo cair antes da resposta, registramos a nota sem mudar a cor final
-        $('log').textContent = 'Restart solicitado (conexão foi fechada durante o reinício).';
+        $('log').textContent = 'Erro no restart: ' + e.message;
+        setBtnState(btn, 'red');
       }
     }
 
@@ -148,15 +142,8 @@
     }
 
     function clearAll() {
-      const btn = $('clearBtn');
-      cooldown(btn);
-      $('protocol').value = '';
-      $('log').textContent = '';
-      // todos os botões voltam à cor padrão (azul)
-      ['sendBtn','condaBtn','serverBtn','restartBtn','commitBtn','clearBtn'].forEach(id => {
-        const el = $(id);
-        if (el) setBtnState(el, 'blue');
-      });
+      const btn = $('clearBtn'); cooldown(btn);
+      $('protocol').value = ''; $('log').textContent = ''; setBtnState($('sendBtn'), 'blue');
     }
 
     $('sendBtn').addEventListener('click', apply);
