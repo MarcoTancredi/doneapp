@@ -35,6 +35,10 @@
     </div>
 
     <div class="card">
+      <h3>Me</h3>
+      <button onclick="me()">/api/me</button>
+    </div>
+    <div class="card">
       <h3>Tokens</h3>
       <button onclick="refresh()">Refresh access token</button>
     </div>
@@ -44,6 +48,7 @@
       <button onclick="me()">/api/me</button>
     </div>
 
+
     <div class="card">
       <h3>Log</h3>
       <pre id="log"></pre>
@@ -51,10 +56,10 @@
   </div>
 
   <script>
-    const log = (v) => document.getElementById('log').textContent =
-      (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+    const log = (v) => document.getElementById('log').textContent = (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     const tokenKey = 'doneapp_token';
     const refreshKey = 'doneapp_refresh';
+
 
     async function call(path, opts = {}) {
       const t = localStorage.getItem(tokenKey);
@@ -83,29 +88,22 @@
           body: JSON.stringify({username: li_user.value, password: li_pass.value})
         });
         localStorage.setItem(tokenKey, data.access_token);
-        if (data.refresh_token) localStorage.setItem(refreshKey, data.refresh_token);
         log({login:"ok"});
       } catch(e){ log(e.message); }
     }
+        localStorage.setItem(tokenKey, data.access_token);
+        if (data.refresh_token) localStorage.setItem(refreshKey, data.refresh_token);
+        log({login:"ok"});
+
 
     function logout() {
       localStorage.removeItem(tokenKey);
-      localStorage.removeItem(refreshKey);
       log({logout:"ok"});
     }
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(refreshKey);
+      log({logout:"ok"});
 
-    async function refresh() {
-      try {
-        const rt = localStorage.getItem(refreshKey);
-        if (!rt) { log("no refresh token"); return; }
-        const data = await call('/api/token/refresh', {
-          method: 'POST',
-          body: JSON.stringify({refresh_token: rt})
-        });
-        localStorage.setItem(tokenKey, data.access_token);
-        log({refresh:"ok"});
-      } catch(e){ log(e.message); }
-    }
 
     async function me() {
       try {

@@ -44,6 +44,7 @@
       <button onclick="me()">/api/me</button>
     </div>
 
+
     <div class="card">
       <h3>Log</h3>
       <pre id="log"></pre>
@@ -51,10 +52,10 @@
   </div>
 
   <script>
-    const log = (v) => document.getElementById('log').textContent =
-      (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+    const log = (v) => document.getElementById('log').textContent = (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     const tokenKey = 'doneapp_token';
     const refreshKey = 'doneapp_refresh';
+
 
     async function call(path, opts = {}) {
       const t = localStorage.getItem(tokenKey);
@@ -82,17 +83,19 @@
           method: 'POST',
           body: JSON.stringify({username: li_user.value, password: li_pass.value})
         });
+      } catch(e){ log(e.message); }
+    }
         localStorage.setItem(tokenKey, data.access_token);
         if (data.refresh_token) localStorage.setItem(refreshKey, data.refresh_token);
         log({login:"ok"});
-      } catch(e){ log(e.message); }
-    }
+
 
     function logout() {
+    }
       localStorage.removeItem(tokenKey);
       localStorage.removeItem(refreshKey);
       log({logout:"ok"});
-    }
+
 
     async function refresh() {
       try {
@@ -113,6 +116,7 @@
         log(data);
       } catch(e){ log(e.message); }
     }
+
   </script>
 </body>
 </html>
