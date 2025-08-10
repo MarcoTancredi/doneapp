@@ -282,32 +282,20 @@ def git_commit():
     root = Path(data.get("workspace_root",".")).resolve()
     message = data.get("message","update")
     do_push = bool(data.get("push", False))
-
     r_add = _run_git(["add","-A"], root)
     if r_add.returncode != 0:
         return jsonify({"ok":False,"error":r_add.stderr}), 500
-
     r_c = _run_git(["commit","-m",message], root)
     out = (r_add.stdout or "") + "\n" + (r_c.stdout or "")
     if r_c.returncode != 0:
-        # nada para commitar não é erro fatal se vamos tentar push
-        if "nothing to commit" not in (r_c.stderr or "").lower():
-            return jsonify({"ok":False,"error":r_c.stderr, "output":out}), 500
-
+        return jsonify({"ok":False,"error":r_c.stderr, "output":out}), 500
     if do_push:
         r_remote = _run_git(["remote"], root)
-        if r_remote.returncode == 0 and (r_remote.stdout or "").strip():
-            # tenta push normal
+        if r_remote.stdout.strip():
             r_p = _run_git(["push"], root)
             out += "\n" + (r_p.stdout or "")
             if r_p.returncode != 0:
-                # se falhou por falta de upstream, tenta descobrir branch atual e fazer push -u
-                r_br = _run_git(["rev-parse","--abbrev-ref","HEAD"], root)
-                branch = (r_br.stdout or "main").strip() or "main"
-                r_u = _run_git(["push","-u","origin",branch], root)
-                out += "\n" + (r_u.stdout or "")
-                if r_u.returncode != 0:
-                    return jsonify({"ok":False,"error":(r_p.stderr or r_u.stderr), "output":out}), 500
+                return jsonify({"ok":False,"error":r_p.stderr, "output":out}), 500
         else:
             out += "\n(no remote configured; skipping push)"
     return jsonify({"ok":True,"output":out})

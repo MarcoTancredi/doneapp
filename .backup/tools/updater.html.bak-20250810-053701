@@ -125,55 +125,26 @@
 
     async function doCommit() {
       const btn = $('commitBtn'); cooldown(btn);
-      const workspace = $('workspace').value.trim();
-
-      // garante repo inicializado
       const st = await pingStatus();
+      const workspace = $('workspace').value.trim();
       if (!st || !st.git_inited) {
         const name = prompt("git user.name:");
         const email = prompt("git user.email:");
         if (!name || !email) { $('log').textContent = 'git init cancelado'; return; }
         try {
-          const r = await fetch(baseUrl() + '/git/init', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({workspace_root: workspace, name, email})
-          });
+          const r = await fetch(baseUrl() + '/git/init', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({workspace_root: workspace, name, email})});
           const data = await r.json();
           if (!data.ok) { $('log').textContent = 'git init ERRO: ' + (data.error||''); setBtnState(btn,'red'); return; }
         } catch(e){ $('log').textContent='git init ERRO: '+e.message; setBtnState(btn,'red'); return; }
       }
-
-      // garante remoto
-      try {
-        const r0 = await fetch(baseUrl() + '/git/remotes?workspace_root=' + encodeURIComponent(workspace));
-        const j0 = await r0.json();
-        const hasRemote = j0.ok && /origin\s+/i.test(j0.output || "");
-        if (!hasRemote) {
-          const url = prompt("URL do repositório remoto (ex: https://github.com/MarcoTancredi/doneapp.git):");
-          if (!url) { $('log').textContent = 'remote não configurado'; setBtnState(btn,'red'); return; }
-          const rr = await fetch(baseUrl() + '/git/remote', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({workspace_root: workspace, name:'origin', url})
-          });
-          const jd = await rr.json();
-          if (!jd.ok) { $('log').textContent = 'git remote ERRO: ' + (jd.error||''); setBtnState(btn,'red'); return; }
-        }
-      } catch(e){ $('log').textContent = 'git remote ERRO: ' + e.message; setBtnState(btn,'red'); return; }
-
       const msg = prompt('Commit message:', 'update');
       if (!msg) { $('log').textContent = 'commit cancelado'; return; }
-
       try {
-        const r = await fetch(baseUrl() + '/git/commit', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({workspace_root: workspace, message: msg, push: true})
-        });
+        const r = await fetch(baseUrl() + '/git/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({workspace_root: workspace, message: msg, push: false})});
         const data = await r.json();
-        if (!data.ok) { $('log').textContent = 'commit/push ERRO: ' + (data.error || ''); setBtnState(btn,'red'); }
-        else { $('log').textContent = data.output || 'commit+push ok'; setBtnState(btn,'blue'); copyToClipboard(data.output||''); }
-      } catch(e) {
-        $('log').textContent = 'commit/push ERRO: ' + e.message; setBtnState(btn,'red');
-      }
+        if (!data.ok) { $('log').textContent = 'commit ERRO: ' + (data.error || ''); setBtnState(btn,'red'); }
+        else { $('log').textContent = data.output || 'commit ok'; setBtnState(btn,'blue'); copyToClipboard(data.output||''); }
+      } catch(e) { $('log').textContent = 'commit ERRO: ' + e.message; setBtnState(btn,'red'); }
     }
 
     function clearAll() {
