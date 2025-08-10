@@ -167,32 +167,6 @@
       try { log(await call('/api/admin/ping')); }
       catch(e){ log(e.message); }
     }
-    async function resetRequest() {
-      try {
-        const u = rs_user.value.trim();
-        if (!u) { log("informe username"); return; }
-        const data = await call('/api/reset/request', {
-          method:'POST',
-          body: JSON.stringify({username: u})
-        });
-        log(data);
-        if (data.reset_token) rs_token.value = data.reset_token;
-      } catch(e){ log(e.message); }
-    }
-
-    async function resetConfirm() {
-      try {
-        const token = rs_token.value.trim();
-        const newp  = rs_new.value;
-        if (!token || !newp) { log("token/senha ausentes"); return; }
-        const data = await call('/api/reset/confirm', {
-          method:'POST',
-          body: JSON.stringify({token, new_password: newp})
-        });
-        log(data);
-      } catch(e){ log(e.message); }
-    }
-
   </script>
 </body>
 </html>

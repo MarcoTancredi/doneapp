@@ -51,20 +51,6 @@
     </div>
 
     <div class="card">
-      <h3>Reset de senha (dev)</h3>
-      <div class="row">
-        <div><input id="rs_user" placeholder="username para reset"></div>
-      </div>
-      <button onclick="resetRequest()">Gerar token de reset</button>
-
-      <div class="row">
-        <div><input id="rs_token" placeholder="token de reset"></div>
-        <div><input id="rs_new" type="password" placeholder="nova senha"></div>
-      </div>
-      <button onclick="resetConfirm()">Confirmar reset</button>
-    </div>
-
-    <div class="card">
       <h3>Alterar senha</h3>
       <div class="row">
         <div><input id="cp_curr" type="password" placeholder="senha atual"></div>
@@ -167,32 +153,6 @@
       try { log(await call('/api/admin/ping')); }
       catch(e){ log(e.message); }
     }
-    async function resetRequest() {
-      try {
-        const u = rs_user.value.trim();
-        if (!u) { log("informe username"); return; }
-        const data = await call('/api/reset/request', {
-          method:'POST',
-          body: JSON.stringify({username: u})
-        });
-        log(data);
-        if (data.reset_token) rs_token.value = data.reset_token;
-      } catch(e){ log(e.message); }
-    }
-
-    async function resetConfirm() {
-      try {
-        const token = rs_token.value.trim();
-        const newp  = rs_new.value;
-        if (!token || !newp) { log("token/senha ausentes"); return; }
-        const data = await call('/api/reset/confirm', {
-          method:'POST',
-          body: JSON.stringify({token, new_password: newp})
-        });
-        log(data);
-      } catch(e){ log(e.message); }
-    }
-
   </script>
 </body>
 </html>

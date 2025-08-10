@@ -30,7 +30,6 @@ def _int(env, default):
 ACCESS_TOKEN_EXPIRE_HOURS = _int("ACCESS_TOKEN_EXPIRE_HOURS", 8)
 REFRESH_TOKEN_EXPIRE_DAYS = _int("REFRESH_TOKEN_EXPIRE_DAYS", 7)
 DEV_ALLOW_SEED_ADMIN = os.getenv("DEV_ALLOW_SEED_ADMIN", "false").lower() in ("1","true","yes","on")
-DEV_SHOW_RESET_TOKEN = os.getenv("DEV_SHOW_RESET_TOKEN", "false").lower() in ("1","true","yes","on")
 
 # ------------------------ App --------------------------
 app = FastAPI(title="DoneApp API", openapi_url="/api/openapi.json", docs_url="/api/docs")
@@ -98,13 +97,6 @@ class ChangePasswordIn(BaseModel):
 class SeedAdminIn(BaseModel):
     username: str
 
-class ResetRequestIn(BaseModel):
-    username: str
-
-class ResetConfirmIn(BaseModel):
-    token: str
-    new_password: str
-
 # ------------------------ Auth helpers -----------------
 def create_access_token(sub: str, role: str, expires: Optional[timedelta] = None) -> str:
     now = datetime.now(timezone.utc)
@@ -116,12 +108,6 @@ def create_refresh_token(sub: str) -> str:
     now = datetime.now(timezone.utc)
     exp = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     payload = {"sub": sub, "type": "refresh", "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGO)
-
-def create_reset_token(sub: str) -> str:
-    now = datetime.now(timezone.utc)
-    exp = now + timedelta(minutes=30)
-    payload = {"sub": sub, "type": "reset", "iat": int(now.timestamp()), "exp": int(exp.timestamp())}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGO)
 
 def verify_password(pw: str, pw_hash: str) -> bool:
@@ -197,6 +183,7 @@ def token_refresh(body: RefreshIn):
             raise HTTPException(status_code=401, detail="Invalid token type")
         sub = str(payload.get("sub") or "")
         if not sub: raise HTTPException(status_code=401, detail="Invalid refresh token")
+        # pega role atual do banco (fonte da verdade)
         conn = get_db()
         try:
             row = conn.execute("SELECT role FROM users WHERE username=?", (sub,)).fetchone()
@@ -208,52 +195,6 @@ def token_refresh(body: RefreshIn):
         raise HTTPException(status_code=401, detail="Refresh token expired")
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-@app.post("/api/reset/request")
-def reset_request(body: ResetRequestIn):
-    user = body.username.strip()
-    if not user:
-        raise HTTPException(status_code=400, detail="username required")
-    conn = get_db()
-    try:
-        row = conn.execute("SELECT 1 FROM users WHERE username=?", (user,)).fetchone()
-        if not row:
-            # não vaza existência do usuário
-            return {"ok": True}
-    finally:
-        conn.close()
-    token = create_reset_token(sub=user)
-    if DEV_SHOW_RESET_TOKEN:
-        return {"ok": True, "reset_token": token}
-    return {"ok": True}
-
-@app.post("/api/reset/confirm")
-def reset_confirm(body: ResetConfirmIn):
-    try:
-        payload = jwt.decode(body.token, SECRET_KEY, algorithms=[ALGO])
-        if payload.get("type") != "reset":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-        user = str(payload.get("sub") or "")
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Reset token expired")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid reset token")
-
-    if not body.new_password:
-        raise HTTPException(status_code=400, detail="new_password required")
-
-    conn = get_db()
-    try:
-        new_hash = bcrypt.hash(body.new_password)
-        updated = conn.execute("UPDATE users SET password_hash=? WHERE username=?", (new_hash, user)).rowcount
-        conn.commit()
-        if updated == 0:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {"ok": True}
-    finally:
-        conn.close()
 
 @app.get("/api/me")
 def api_me(user: str = Depends(get_current_user)):
@@ -314,5 +255,4 @@ def api_logout():
     return {"ok": True}
 
 @app.get("/api/healthz")
-def healthz(): 
-    return {"ok": True}
+def healthz(): return {"ok": True}
