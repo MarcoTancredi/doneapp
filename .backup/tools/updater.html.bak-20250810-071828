@@ -371,7 +371,7 @@
     $('condaBtn').addEventListener('click', checkConda);
     $('serverBtn').addEventListener('click', checkServer);
     $('restartBtn').addEventListener('click', doRestart);
-    $('commitBtn').addEventListener('click', startCommit);
+    $('commitBtn').addEventListener('click', doCommit);
     $('clearBtn').addEventListener('click', clearAll);
   </script>
 </body>

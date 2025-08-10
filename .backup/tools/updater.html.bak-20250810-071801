@@ -294,84 +294,10 @@
     }
 
     $('sendBtn').addEventListener('click', apply);
-    // ---- Modal de Commit ----
-    function openCommitModal() {
-      $('cm_name').value  = ($('gitUser')?.value.trim()  || 'MarcoTancredi');
-      $('cm_email').value = ($('gitEmail')?.value.trim() || 'Marco@PlanetaMicro.com.br');
-      $('cm_msg').value   = 'update';
-      const m = $('commitModal'); if (m) { m.style.display = 'flex'; }
-    }
-    function closeCommitModal(){ const m = $('commitModal'); if (m) { m.style.display = 'none'; } }
-    function startCommit(){
-      const btn = $('commitBtn'); cooldown(btn);
-      openCommitModal();
-    }
-    async function performCommit(name, email, message){
-      const btn = $('commitBtn');
-      const workspace = $('workspace').value.trim();
-      try{
-        // init (se necessário)
-        const st = await pingStatus();
-        if (!st || !st.git_inited){
-          const r = await fetch(baseUrl() + '/git/init', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({workspace_root: workspace, name, email})
-          });
-          const data = await r.json();
-          if (!data.ok){ $('log').textContent = 'git init ERRO: ' + (data.error||''); setBtnState(btn,'red'); return; }
-          // persiste defaults
-          if ($('gitUser'))  $('gitUser').value  = name;
-          if ($('gitEmail')) $('gitEmail').value = email;
-        }
-
-        // remoto
-        const r0 = await fetch(baseUrl() + '/git/remotes?workspace_root=' + encodeURIComponent(workspace));
-        const j0 = await r0.json();
-        const hasRemote = j0.ok && /origin\s+/i.test(j0.output || "");
-        if (!hasRemote){
-          const url = window.prompt("URL do repositório remoto (ex: https://github.com/MarcoTancredi/doneapp.git):", "");
-          if (!url){ $('log').textContent = 'remote não configurado'; setBtnState(btn,'red'); return; }
-          const rr = await fetch(baseUrl() + '/git/remote', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({workspace_root: workspace, name:'origin', url})
-          });
-          const jd = await rr.json();
-          if (!jd.ok){ $('log').textContent = 'git remote ERRO: ' + (jd.error||''); setBtnState(btn,'red'); return; }
-        }
-
-        // commit + push
-        const r = await fetch(baseUrl() + '/git/commit', {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({workspace_root: workspace, message, push: true})
-        });
-        const data = await r.json();
-        if (!data.ok){ $('log').textContent = 'commit/push ERRO: ' + (data.error || ''); setBtnState(btn,'red'); }
-        else { $('log').textContent = data.output || 'commit+push ok'; setBtnState(btn,'blue'); copyToClipboard(data.output||''); }
-      } catch(e){
-        $('log').textContent = 'commit/push ERRO: ' + e.message; setBtnState(btn,'red');
-      }
-    }
-
-    // liga botoes do modal
-    (function(){
-      const cancelBtn = $('cm_cancel');
-      const okBtn = $('cm_ok');
-      if (cancelBtn) cancelBtn.addEventListener('click', ()=>{ closeCommitModal(); });
-      if (okBtn) okBtn.addEventListener('click', async ()=>{
-        const name = $('cm_name').value.trim();
-        const email = $('cm_email').value.trim();
-        const msg = $('cm_msg').value.trim() || 'update';
-        closeCommitModal();
-        await performCommit(name, email, msg);
-      });
-    })();
-
-    $('sendBtn').addEventListener('click', apply);
-
     $('condaBtn').addEventListener('click', checkConda);
     $('serverBtn').addEventListener('click', checkServer);
     $('restartBtn').addEventListener('click', doRestart);
-    $('commitBtn').addEventListener('click', startCommit);
+    $('commitBtn').addEventListener('click', doCommit);
     $('clearBtn').addEventListener('click', clearAll);
   </script>
 </body>
