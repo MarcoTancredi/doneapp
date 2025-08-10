@@ -1,10 +1,10 @@
 
 from __future__ import annotations
-import os, sqlite3, time, json
+import os, sqlite3, time
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Optional, Deque, Dict, Tuple
+from typing import Optional, Deque, Dict
 
 from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,49 +22,25 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
 DB_PATH  = DATA_DIR / "app.db"
 SEC_LOG  = DATA_DIR / "security.log"
-RL_FILE  = DATA_DIR / "rate_limits.json"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 SECRET_KEY = os.getenv("FASTAPI_SECRET", os.getenv("FASTAPI_SECRET_KEY", "CHANGE-ME-SECRET"))
 ALGO = "HS256"
-
 def _int(env, default):
     try: return int(os.getenv(env, str(default)))
     except: return default
-
-# Defaults (podem ser alterados via /api/admin/rate_limits)
-DEFAULT_RL = {
-    "login_max":   _int("RATE_LIMIT_LOGIN_ATTEMPTS",   5),
-    "login_win":   _int("RATE_LIMIT_LOGIN_WINDOW_SEC", 600),  # 10 min
-    "signup_max":  _int("RATE_LIMIT_SIGNUP_ATTEMPTS",  5),
-    "signup_win":  _int("RATE_LIMIT_SIGNUP_WINDOW_SEC",600),  # 10 min
-    "reset_max":   _int("RATE_LIMIT_RESET_ATTEMPTS",   5),
-    "reset_win":   _int("RATE_LIMIT_RESET_WINDOW_SEC", 300),
-    # nº de usuários distintos que um mesmo IP pode logar na janela
-    "distinct_max": _int("RATE_LIMIT_DISTINCT_USERS_MAX", 5),
-    "distinct_win": _int("RATE_LIMIT_DISTINCT_USERS_WINDOW_SEC", 600),
-}
-SECURITY_LOG_ENABLE  = os.getenv("SECURITY_LOG_ENABLE", "true").lower() in ("1","true","yes","on")
-DEV_ALLOW_SEED_ADMIN = os.getenv("DEV_ALLOW_SEED_ADMIN", "false").lower() in ("1","true","yes","on")
-DEV_SHOW_RESET_TOKEN = os.getenv("DEV_SHOW_RESET_TOKEN", "false").lower() in ("1","true","yes","on")
-
 ACCESS_TOKEN_EXPIRE_HOURS = _int("ACCESS_TOKEN_EXPIRE_HOURS", 8)
 REFRESH_TOKEN_EXPIRE_DAYS = _int("REFRESH_TOKEN_EXPIRE_DAYS", 7)
+DEV_ALLOW_SEED_ADMIN = os.getenv("DEV_ALLOW_SEED_ADMIN", "false").lower() in ("1","true","yes","on")
+DEV_SHOW_RESET_TOKEN = os.getenv("DEV_SHOW_RESET_TOKEN", "false").lower() in ("1","true","yes","on")
+SECURITY_LOG_ENABLE  = os.getenv("SECURITY_LOG_ENABLE", "true").lower() in ("1","true","yes","on")
 
-# Carrega/salva RL em JSON
-def load_rate_limits() -> dict:
-    if RL_FILE.exists():
-        try:
-            data = json.loads(RL_FILE.read_text(encoding="utf-8"))
-            return {**DEFAULT_RL, **{k:int(v) for k,v in data.items() if k in DEFAULT_RL}}
-        except Exception:
-            pass
-    return DEFAULT_RL.copy()
-
-def save_rate_limits(cfg: dict) -> None:
-    RL_FILE.write_text(json.dumps({k:int(cfg[k]) for k in DEFAULT_RL}, indent=2), encoding="utf-8")
-
-RL = load_rate_limits()
+RL_LOGIN_MAX   = _int("RATE_LIMIT_LOGIN_ATTEMPTS",   5)
+RL_LOGIN_WIN   = _int("RATE_LIMIT_LOGIN_WINDOW_SEC", 300)
+RL_SIGNUP_MAX  = _int("RATE_LIMIT_SIGNUP_ATTEMPTS",  10)
+RL_SIGNUP_WIN  = _int("RATE_LIMIT_SIGNUP_WINDOW_SEC",3600)
+RL_RESET_MAX   = _int("RATE_LIMIT_RESET_ATTEMPTS",   5)
+RL_RESET_WIN   = _int("RATE_LIMIT_RESET_WINDOW_SEC", 300)
 
 # ------------------------ App --------------------------
 app = FastAPI(title="DoneApp API", openapi_url="/api/openapi.json", docs_url="/api/docs")
@@ -139,43 +115,20 @@ class ResetConfirmIn(BaseModel):
     token: str
     new_password: str
 
-class RateLimitsIn(BaseModel):
-    login_max: Optional[int] = None
-    login_win: Optional[int] = None
-    signup_max: Optional[int] = None
-    signup_win: Optional[int] = None
-    reset_max: Optional[int] = None
-    reset_win: Optional[int] = None
-    distinct_max: Optional[int] = None
-    distinct_win: Optional[int] = None
-
 # ------------------------ Security utils -----------------
-_RL_BUCKETS: Dict[str, Deque[float]] = {}                 # tentativas por IP/ação
-_RL_DISTINCT: Dict[str, Deque[Tuple[float, str]]] = {}    # logins bem-sucedidos por IP/username
+# in-memory rate limiting (por processo). Em prod: trocar por Redis.
+_RL_BUCKETS: Dict[str, Deque[float]] = {}
 
 def client_ip(req: Request) -> str:
     xf = (req.headers.get("x-forwarded-for") or "").split(",")[0].strip()
     if xf: return xf
     return req.client.host if req.client else "unknown"
 
-def sec_log(action: str, status: str, user: str = "", ip: str = "", extra: str = ""):
-    if not SECURITY_LOG_ENABLE: return
-    try:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        with SEC_LOG.open("a", encoding="utf-8") as f:
-            ts = datetime.utcnow().isoformat() + "Z"
-            f.write(f"{ts} action={action} status={status} user={user} ip={ip} {extra}\n")
-    except Exception:
-        pass
-
-def _bucket(key: str) -> Deque[float]:
-    return _RL_BUCKETS.setdefault(key, deque())
-
 def rate_limit(key: str, max_attempts: int, window_sec: int) -> Optional[int]:
     """Retorna None se OK; ou segundos de espera se bloqueado."""
     now = time.time()
-    dq = _bucket(key)
-    # remove eventos fora da janela
+    dq = _RL_BUCKETS.setdefault(key, deque())
+    # limpa janelas antigas
     while dq and now - dq[0] > window_sec:
         dq.popleft()
     if len(dq) >= max_attempts:
@@ -184,35 +137,15 @@ def rate_limit(key: str, max_attempts: int, window_sec: int) -> Optional[int]:
     dq.append(now)
     return None
 
-def account_switch_block(ip: str, username: str) -> Optional[int]:
-    """
-    Limita nº de usuários distintos logados com sucesso por IP na janela.
-    Checa *antes* de registrar o sucesso. Retorna segundos até liberar.
-    """
-    now = time.time()
-    win = RL["distinct_win"]
-    mx  = RL["distinct_max"]
-    dq  = _RL_DISTINCT.setdefault(ip, deque())
-    # limpa janela
-    while dq and now - dq[0][0] > win:
-        dq.popleft()
-    # set de distintos atuais
-    distinct = {}
-    for ts, user in dq:
-        if now - ts <= win:
-            distinct[user] = ts
-    # se o user já está no set, não aumenta a contagem
-    if username not in distinct and len(distinct) >= mx:
-        # tempo até alguém sair da janela
-        oldest = min(distinct.values())
-        retry_after = int(win - (now - oldest)) + 1
-        return max(1, retry_after)
-    return None
-
-def account_switch_register(ip: str, username: str) -> None:
-    now = time.time()
-    dq = _RL_DISTINCT.setdefault(ip, deque())
-    dq.append((now, username))
+def sec_log(action: str, status: str, user: str = "", ip: str = "", extra: str = ""):
+    if not SECURITY_LOG_ENABLE: return
+    try:
+        with SEC_LOG.open("a", encoding="utf-8") as f:
+            ts = datetime.utcnow().isoformat() + "Z"
+            line = f"{ts} action={action} status={status} user={user} ip={ip} {extra}\n"
+            f.write(line)
+    except Exception:
+        pass
 
 # ------------------------ Auth helpers -----------------
 def create_access_token(sub: str, role: str, expires: Optional[timedelta] = None) -> str:
@@ -269,7 +202,8 @@ def require_admin(user: str = Depends(get_current_user)) -> str:
 @app.post("/api/signup")
 def api_signup(body: SignUp, request: Request):
     ip = client_ip(request)
-    ra = rate_limit(f"signup:{ip}", RL["signup_max"], RL["signup_win"])
+    key = f"signup:{ip}"
+    ra = rate_limit(key, RL_SIGNUP_MAX, RL_SIGNUP_WIN)
     if ra:
         sec_log("signup_rate_limited", "blocked", ip=ip)
         raise HTTPException(status_code=429, detail="Too many signup attempts", headers={"Retry-After": str(ra)})
@@ -295,7 +229,8 @@ def api_signup(body: SignUp, request: Request):
 @app.post("/api/login")
 def api_login(body: Login, request: Request):
     ip = client_ip(request)
-    ra = rate_limit(f"login:{ip}", RL["login_max"], RL["login_win"])
+    key = f"login:{ip}"
+    ra = rate_limit(key, RL_LOGIN_MAX, RL_LOGIN_WIN)
     if ra:
         sec_log("login_rate_limited", "blocked", user=body.username, ip=ip)
         raise HTTPException(status_code=429, detail="Too many login attempts", headers={"Retry-After": str(ra)})
@@ -306,20 +241,9 @@ def api_login(body: Login, request: Request):
         if not row or not verify_password(body.password, row[0]):
             sec_log("login", "invalid", user=body.username, ip=ip)
             raise HTTPException(status_code=401, detail="Invalid credentials")
-
-        # Limite de alternância de contas por IP (somente em sucesso)
-        ra2 = account_switch_block(ip, body.username)
-        if ra2:
-            sec_log("login_switch_block", "blocked", user=body.username, ip=ip, extra=f"distinct>{RL['distinct_max']}")
-            raise HTTPException(status_code=429, detail="Too many different users from this IP", headers={"Retry-After": str(ra2)})
-
         role = row[1] or "user"
         access  = create_access_token(sub=body.username, role=role)
         refresh = create_refresh_token(sub=body.username)
-
-        # registra alternância (sucesso)
-        account_switch_register(ip, body.username)
-
         sec_log("login", "ok", user=body.username, ip=ip, extra=f"role={role}")
         return {"access_token": access, "refresh_token": refresh, "token_type": "bearer", "role": role}
     finally:
@@ -348,7 +272,8 @@ def token_refresh(body: RefreshIn):
 @app.post("/api/reset/request")
 def reset_request(body: ResetRequestIn, request: Request):
     ip = client_ip(request)
-    ra = rate_limit(f"reset:{ip}", RL["reset_max"], RL["reset_win"])
+    key = f"reset:{ip}"
+    ra = rate_limit(key, RL_RESET_MAX, RL_RESET_WIN)
     if ra:
         sec_log("reset_request_rate_limited", "blocked", user=body.username, ip=ip)
         raise HTTPException(status_code=429, detail="Too many reset attempts", headers={"Retry-After": str(ra)})
@@ -442,26 +367,6 @@ def admin_ping(user: str = Depends(require_admin), request: Request = None):
     if request is not None:
         sec_log("admin_ping", "ok", user=user, ip=client_ip(request))
     return {"admin": user, "ok": True}
-
-@app.get("/api/admin/rate_limits")
-def get_rate_limits(_: str = Depends(require_admin)):
-    return RL
-
-@app.post("/api/admin/rate_limits")
-def set_rate_limits(body: RateLimitsIn, user: str = Depends(require_admin)):
-    changed = {}
-    for k, v in body.dict().items():
-        if v is None: continue
-        if k in DEFAULT_RL:
-            try:
-                RL[k] = int(v)
-                changed[k] = RL[k]
-            except Exception:
-                raise HTTPException(status_code=400, detail=f"invalid value for {k}")
-    if changed:
-        save_rate_limits(RL)
-        sec_log("rate_limits", "updated", user=user, extra=json.dumps(changed))
-    return {"ok": True, "config": RL}
 
 @app.post("/api/setup/admin_once")
 def admin_once(body: SeedAdminIn):

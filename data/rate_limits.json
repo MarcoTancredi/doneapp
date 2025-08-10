@@ -1,0 +1,10 @@
+{
+  "login_max": 3,
+  "login_win": 600,
+  "signup_max": 3,
+  "signup_win": 3,
+  "reset_max": 5,
+  "reset_win": 300,
+  "distinct_max": 3,
+  "distinct_win": 600
+}

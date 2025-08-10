@@ -7,18 +7,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#0f1220;color:#f5f7ff}
-    .wrap{max-width:980px;margin:0 auto}
+    .wrap{max-width:920px;margin:0 auto}
     .card{background:#14182a;border:1px solid #263055;border-radius:16px;padding:16px;box-shadow:0 6px 20px rgba(0,0,0,.35);margin-bottom:16px}
     input{border:1px solid #2b365f;background:#0b0f1f;color:#e7ecff;border-radius:12px;padding:10px;width:100%;margin:6px 0}
     .row{display:flex;gap:12px;flex-wrap:wrap}
-    .row > div{flex:1;min-width:200px}
+    .row > div{flex:1;min-width:220px}
     button{border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:#7aa2ff;color:#0b0f1f;margin-right:8px;margin-top:8px}
     pre{white-space:pre-wrap;background:#0b0f1f;border:1px solid #2b365f;border-radius:12px;padding:10px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>Auth — FastAPI + SQLite + JWT (roles + rate limiting)</h1>
+    <h1>Auth — FastAPI + SQLite + JWT (roles)</h1>
 
     <div class="card">
       <h3>Sign up</h3>
@@ -56,6 +56,7 @@
         <div><input id="rs_user" placeholder="username para reset"></div>
       </div>
       <button onclick="resetRequest()">Gerar token de reset</button>
+
       <div class="row">
         <div><input id="rs_token" placeholder="token de reset"></div>
         <div><input id="rs_new" type="password" placeholder="nova senha"></div>
@@ -73,30 +74,12 @@
     </div>
 
     <div class="card">
-      <h3>Admin</h3>
+      <h3>Admin (dev)</h3>
       <div class="row">
         <div><input id="ad_user" placeholder="username para promover a admin (uma única vez)"></div>
       </div>
       <button onclick="seedAdmin()">Seed admin (once)</button>
       <button onclick="adminPing()">Admin ping</button>
-    </div>
-
-    <div class="card">
-      <h3>Rate limiting (admin)</h3>
-      <div class="row">
-        <div><input id="rl_login_max"  type="number" min="1" placeholder="login_max"></div>
-        <div><input id="rl_login_win"  type="number" min="1" placeholder="login_win (s)"></div>
-        <div><input id="rl_signup_max" type="number" min="1" placeholder="signup_max"></div>
-        <div><input id="rl_signup_win" type="number" min="1" placeholder="signup_win (s)"></div>
-      </div>
-      <div class="row">
-        <div><input id="rl_reset_max"  type="number" min="1" placeholder="reset_max"></div>
-        <div><input id="rl_reset_win"  type="number" min="1" placeholder="reset_win (s)"></div>
-        <div><input id="rl_distinct_max" type="number" min="1" placeholder="distinct_max (users/IP)"></div>
-        <div><input id="rl_distinct_win" type="number" min="1" placeholder="distinct_win (s)"></div>
-      </div>
-      <button onclick="loadRateLimits()">Carregar</button>
-      <button onclick="saveRateLimits()">Salvar</button>
     </div>
 
     <div class="card">
@@ -106,8 +89,7 @@
   </div>
 
   <script>
-    const log = (v) => document.getElementById('log').textContent =
-      (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+    const log = (v) => document.getElementById('log').textContent = (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     const tokenKey = 'doneapp_token';
     const refreshKey = 'doneapp_refresh';
 
@@ -116,47 +98,25 @@
       const headers = Object.assign({'Content-Type':'application/json'}, (opts.headers||{}));
       if (t) headers['Authorization'] = 'Bearer ' + t;
       const res = await fetch(path, Object.assign({}, opts, {headers}));
-      let data = {};
-      try { data = await res.json(); } catch(_) {}
-      if (!res.ok) {
-        const e = new Error((data && data.detail) || res.statusText);
-        e.status = res.status;
-        e.retryAfter = res.headers.get('Retry-After');
-        throw e;
-      }
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data.detail || res.statusText);
       return data;
-    }
-
-    function showError(e) {
-      if (e && e.status === 429) {
-        const ra = parseInt(e.retryAfter || '0', 10);
-        if (!isNaN(ra) && ra > 0) { log(`Muitas tentativas. Tente novamente em ~${ra}s`); return; }
-        log('Muitas tentativas. Aguarde um pouco.');
-      } else {
-        log(e?.message || 'erro');
-      }
     }
 
     async function signup() {
       try {
-        const data = await call('/api/signup', {
-          method: 'POST',
-          body: JSON.stringify({username: su_user.value, password: su_pass.value})
-        });
+        const data = await call('/api/signup', { method: 'POST', body: JSON.stringify({username: su_user.value, password: su_pass.value}) });
         log(data);
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     async function login() {
       try {
-        const data = await call('/api/login', {
-          method: 'POST',
-          body: JSON.stringify({username: li_user.value, password: li_pass.value})
-        });
+        const data = await call('/api/login', { method: 'POST', body: JSON.stringify({username: li_user.value, password: li_pass.value}) });
         localStorage.setItem(tokenKey, data.access_token);
         if (data.refresh_token) localStorage.setItem(refreshKey, data.refresh_token);
         log({login:"ok", role: data.role || "user"});
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     function logout() {
@@ -169,23 +129,20 @@
       try {
         const rt = localStorage.getItem(refreshKey);
         if (!rt) { log("no refresh token"); return; }
-        const data = await call('/api/token/refresh', {
-          method: 'POST',
-          body: JSON.stringify({refresh_token: rt})
-        });
+        const data = await call('/api/token/refresh', { method: 'POST', body: JSON.stringify({refresh_token: rt}) });
         localStorage.setItem(tokenKey, data.access_token);
         log({refresh:"ok"});
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     async function me() {
       try { log(await call('/api/me')); }
-      catch(e){ showError(e); }
+      catch(e){ log(e.message); }
     }
 
     async function usersMe() {
       try { log(await call('/api/users/me')); }
-      catch(e){ showError(e); }
+      catch(e){ log(e.message); }
     }
 
     async function changePassword() {
@@ -194,7 +151,7 @@
         if (!curr || !nxt) { log("preencha as senhas"); return; }
         const data = await call('/api/change_password', { method:'POST', body: JSON.stringify({current_password: curr, new_password: nxt}) });
         log(data);
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     async function seedAdmin() {
@@ -203,22 +160,24 @@
         if (!u) { log("informe username"); return; }
         const data = await call('/api/setup/admin_once', { method:'POST', body: JSON.stringify({username: u}) });
         log(data);
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     async function adminPing() {
       try { log(await call('/api/admin/ping')); }
-      catch(e){ showError(e); }
+      catch(e){ log(e.message); }
     }
-
     async function resetRequest() {
       try {
         const u = rs_user.value.trim();
         if (!u) { log("informe username"); return; }
-        const data = await call('/api/reset/request', { method:'POST', body: JSON.stringify({username: u}) });
+        const data = await call('/api/reset/request', {
+          method:'POST',
+          body: JSON.stringify({username: u})
+        });
         log(data);
         if (data.reset_token) rs_token.value = data.reset_token;
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
     async function resetConfirm() {
@@ -226,42 +185,14 @@
         const token = rs_token.value.trim();
         const newp  = rs_new.value;
         if (!token || !newp) { log("token/senha ausentes"); return; }
-        const data = await call('/api/reset/confirm', { method:'POST', body: JSON.stringify({token, new_password: newp}) });
+        const data = await call('/api/reset/confirm', {
+          method:'POST',
+          body: JSON.stringify({token, new_password: newp})
+        });
         log(data);
-      } catch(e){ showError(e); }
+      } catch(e){ log(e.message); }
     }
 
-    async function loadRateLimits() {
-      try {
-        const cfg = await call('/api/admin/rate_limits');
-        rl_login_max.value  = cfg.login_max;
-        rl_login_win.value  = cfg.login_win;
-        rl_signup_max.value = cfg.signup_max;
-        rl_signup_win.value = cfg.signup_win;
-        rl_reset_max.value  = cfg.reset_max;
-        rl_reset_win.value  = cfg.reset_win;
-        rl_distinct_max.value = cfg.distinct_max;
-        rl_distinct_win.value = cfg.distinct_win;
-        log({rate_limits: cfg});
-      } catch(e){ showError(e); }
-    }
-
-    async function saveRateLimits() {
-      try {
-        const body = {
-          login_max:   parseInt(rl_login_max.value  || '0',10),
-          login_win:   parseInt(rl_login_win.value  || '0',10),
-          signup_max:  parseInt(rl_signup_max.value || '0',10),
-          signup_win:  parseInt(rl_signup_win.value || '0',10),
-          reset_max:   parseInt(rl_reset_max.value  || '0',10),
-          reset_win:   parseInt(rl_reset_win.value  || '0',10),
-          distinct_max:parseInt(rl_distinct_max.value||'0',10),
-          distinct_win:parseInt(rl_distinct_win.value||'0',10),
-        };
-        const data = await call('/api/admin/rate_limits', { method:'POST', body: JSON.stringify(body) });
-        log(data);
-      } catch(e){ showError(e); }
-    }
   </script>
 </body>
 </html>
