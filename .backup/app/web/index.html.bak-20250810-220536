@@ -19,7 +19,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Auth — FastAPI + SQLite + JWT (roles + rate limiting + IP rules + integrações)</h1>
+    <h1>Auth — FastAPI + SQLite + JWT (roles + rate limiting + IP rules)</h1>
 
     <div class="card">
       <h3>Sign up</h3>
@@ -117,29 +117,6 @@
     </div>
 
     <div class="card">
-      <h3>Integrações — Criar</h3>
-      <div class="row">
-        <div><input id="ig_provider" placeholder="provider (ex: instagram, facebook)"></div>
-        <div><input id="ig_label" placeholder="label da conta (ex: @minhaloja)"></div>
-      </div>
-      <div class="row">
-        <div><input id="ig_token" placeholder="token de acesso / api key"></div>
-      </div>
-      <button onclick="igCreate()">Criar integração</button>
-    </div>
-
-    <div class="card">
-      <h3>Integrações — Gerenciar</h3>
-      <button onclick="igList()">Listar minhas integrações</button>
-      <div class="row">
-        <div><input id="ig_id" type="number" placeholder="integration id"></div>
-      </div>
-      <button onclick="igTest()">Testar</button>
-      <button onclick="igRotate()">Rotacionar token</button>
-      <button onclick="igDelete()">Excluir</button>
-    </div>
-
-    <div class="card">
       <h3>Security log (admin)</h3>
       <div class="row">
         <div><input id="tail_lines" type="number" min="1" value="200" placeholder="linhas"></div>
@@ -161,13 +138,10 @@
     const tokenKey = 'doneapp_token';
     const refreshKey = 'doneapp_refresh';
 
-    function authHeaders(){
-      const t = localStorage.getItem(tokenKey);
-      return t ? {'Authorization':'Bearer '+t} : {};
-    }
-
     async function call(path, opts = {}) {
-      const headers = Object.assign({'Content-Type':'application/json'}, authHeaders(), (opts.headers||{}));
+      const t = localStorage.getItem(tokenKey);
+      const headers = Object.assign({'Content-Type':'application/json'}, (opts.headers||{}));
+      if (t) headers['Authorization'] = 'Bearer ' + t;
       const res = await fetch(path, Object.assign({}, opts, {headers}));
       let data = {};
       try { data = await res.json(); } catch(_) {}
@@ -192,123 +166,170 @@
       }
     }
 
-    // ---- Auth/Perfil/Reset (iguais aos anteriores) ----
     async function signup() {
-      try { log(await call('/api/signup', {method:'POST', body: JSON.stringify({username: su_user.value, password: su_pass.value})})); }
-      catch(e){ showError(e); }
+      try {
+        const data = await call('/api/signup', {
+          method: 'POST',
+          body: JSON.stringify({username: su_user.value, password: su_pass.value})
+        });
+        log(data);
+      } catch(e){ showError(e); }
     }
+
     async function login() {
       try {
-        const data = await call('/api/login', {method:'POST', body: JSON.stringify({username: li_user.value, password: li_pass.value})});
+        const data = await call('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({username: li_user.value, password: li_pass.value})
+        });
         localStorage.setItem(tokenKey, data.access_token);
         if (data.refresh_token) localStorage.setItem(refreshKey, data.refresh_token);
         log({login:"ok", role: data.role || "user"});
       } catch(e){ showError(e); }
     }
-    function logout(){ localStorage.removeItem(tokenKey); localStorage.removeItem(refreshKey); log({logout:"ok"}); }
+
+    function logout() {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(refreshKey);
+      log({logout:"ok"});
+    }
+
     async function refresh() {
       try {
-        const rt = localStorage.getItem(refreshKey); if (!rt) { log("no refresh token"); return; }
-        const data = await call('/api/token/refresh', {method:'POST', body: JSON.stringify({refresh_token: rt})});
-        localStorage.setItem(tokenKey, data.access_token); log({refresh:"ok"});
+        const rt = localStorage.getItem(refreshKey);
+        if (!rt) { log("no refresh token"); return; }
+        const data = await call('/api/token/refresh', {
+          method: 'POST',
+          body: JSON.stringify({refresh_token: rt})
+        });
+        localStorage.setItem(tokenKey, data.access_token);
+        log({refresh:"ok"});
       } catch(e){ showError(e); }
     }
-    async function me() { try { log(await call('/api/me')); } catch(e){ showError(e); } }
-    async function usersMe(){ try { log(await call('/api/users/me')); } catch(e){ showError(e); } }
-    async function changePassword(){
-      try {
-        const curr = cp_curr.value, nxt = cp_new.value; if (!curr || !nxt) { log("preencha as senhas"); return; }
-        log(await call('/api/change_password', {method:'POST', body: JSON.stringify({current_password: curr, new_password: nxt})}));
-      } catch(e){ showError(e); }
-    }
-    async function resetRequest(){
-      try {
-        const u = rs_user.value.trim(); if (!u){ log("informe username"); return; }
-        const data = await call('/api/reset/request',{method:'POST', body: JSON.stringify({username: u})});
-        log(data); if (data.reset_token) rs_token.value = data.reset_token;
-      } catch(e){ showError(e); }
-    }
-    async function resetConfirm(){
-      try {
-        const token = rs_token.value.trim(), newp = rs_new.value; if (!token || !newp){ log("token/senha ausentes"); return; }
-        log(await call('/api/reset/confirm',{method:'POST', body: JSON.stringify({token, new_password: newp})}));
-      } catch(e){ showError(e); }
-    }
-    async function seedAdmin(){ try { const u = ad_user.value.trim() || li_user.value.trim(); if (!u){ log("informe username"); return; } log(await call('/api/setup/admin_once',{method:'POST', body: JSON.stringify({username:u})})); } catch(e){ showError(e); } }
-    async function adminPing(){ try { log(await call('/api/admin/ping')); } catch(e){ showError(e); } }
 
-    // ---- Rate limiting ----
-    async function loadRateLimits(){
+    async function me() {
+      try { log(await call('/api/me')); }
+      catch(e){ showError(e); }
+    }
+
+    async function usersMe() {
+      try { log(await call('/api/users/me')); }
+      catch(e){ showError(e); }
+    }
+
+    async function changePassword() {
+      try {
+        const curr = cp_curr.value, nxt = cp_new.value;
+        if (!curr || !nxt) { log("preencha as senhas"); return; }
+        const data = await call('/api/change_password', { method:'POST', body: JSON.stringify({current_password: curr, new_password: nxt}) });
+        log(data);
+      } catch(e){ showError(e); }
+    }
+
+    async function seedAdmin() {
+      try {
+        const u = ad_user.value.trim() || li_user.value.trim();
+        if (!u) { log("informe username"); return; }
+        const data = await call('/api/setup/admin_once', { method:'POST', body: JSON.stringify({username: u}) });
+        log(data);
+      } catch(e){ showError(e); }
+    }
+
+    async function adminPing() {
+      try { log(await call('/api/admin/ping')); }
+      catch(e){ showError(e); }
+    }
+
+    async function resetRequest() {
+      try {
+        const u = rs_user.value.trim();
+        if (!u) { log("informe username"); return; }
+        const data = await call('/api/reset/request', { method:'POST', body: JSON.stringify({username: u}) });
+        log(data);
+        if (data.reset_token) rs_token.value = data.reset_token;
+      } catch(e){ showError(e); }
+    }
+
+    async function resetConfirm() {
+      try {
+        const token = rs_token.value.trim();
+        const newp  = rs_new.value;
+        if (!token || !newp) { log("token/senha ausentes"); return; }
+        const data = await call('/api/reset/confirm', { method:'POST', body: JSON.stringify({token, new_password: newp}) });
+        log(data);
+      } catch(e){ showError(e); }
+    }
+
+    async function loadRateLimits() {
       try {
         const cfg = await call('/api/admin/rate_limits');
-        rl_login_max.value=cfg.login_max; rl_login_win.value=cfg.login_win;
-        rl_signup_max.value=cfg.signup_max; rl_signup_win.value=cfg.signup_win;
-        rl_reset_max.value=cfg.reset_max; rl_reset_win.value=cfg.reset_win;
-        rl_distinct_max.value=cfg.distinct_max; rl_distinct_win.value=cfg.distinct_win;
+        rl_login_max.value  = cfg.login_max;
+        rl_login_win.value  = cfg.login_win;
+        rl_signup_max.value = cfg.signup_max;
+        rl_signup_win.value = cfg.signup_win;
+        rl_reset_max.value  = cfg.reset_max;
+        rl_reset_win.value  = cfg.reset_win;
+        rl_distinct_max.value = cfg.distinct_max;
+        rl_distinct_win.value = cfg.distinct_win;
         log({rate_limits: cfg});
       } catch(e){ showError(e); }
     }
-    async function saveRateLimits(){
+
+    async function saveRateLimits() {
       try {
         const body = {
-          login_max:+rl_login_max.value||0, login_win:+rl_login_win.value||0,
-          signup_max:+rl_signup_max.value||0, signup_win:+rl_signup_win.value||0,
-          reset_max:+rl_reset_max.value||0, reset_win:+rl_reset_win.value||0,
-          distinct_max:+rl_distinct_max.value||0, distinct_win:+rl_distinct_win.value||0,
+          login_max:   parseInt(rl_login_max.value  || '0',10),
+          login_win:   parseInt(rl_login_win.value  || '0',10),
+          signup_max:  parseInt(rl_signup_max.value || '0',10),
+          signup_win:  parseInt(rl_signup_win.value || '0',10),
+          reset_max:   parseInt(rl_reset_max.value  || '0',10),
+          reset_win:   parseInt(rl_reset_win.value  || '0',10),
+          distinct_max:parseInt(rl_distinct_max.value||'0',10),
+          distinct_win:parseInt(rl_distinct_win.value||'0',10),
         };
-        log(await call('/api/admin/rate_limits',{method:'POST', body:JSON.stringify(body)}));
+        const data = await call('/api/admin/rate_limits', { method:'POST', body: JSON.stringify(body) });
+        log(data);
       } catch(e){ showError(e); }
     }
 
-    // ---- IP rules ----
-    async function loadIpLists(){
-      try { const cfg = await call('/api/admin/ip_lists'); ip_allow.value=(cfg.allow||[]).join('\n'); ip_deny.value=(cfg.deny||[]).join('\n'); log({ip_lists: cfg}); }
-      catch(e){ showError(e); }
-    }
-    async function saveIpLists(){
+    async function loadIpLists() {
       try {
-        const allow = ip_allow.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-        const deny  = ip_deny.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-        log(await call('/api/admin/ip_lists',{method:'POST', body:JSON.stringify({allow,deny})}));
+        const cfg = await call('/api/admin/ip_lists');
+        ip_allow.value = (cfg.allow || []).join('\\n');
+        ip_deny.value  = (cfg.deny  || []).join('\\n');
+        log({ip_lists: cfg});
       } catch(e){ showError(e); }
     }
 
-    // ---- Security log ----
-    async function tailLog(){
+    async function saveIpLists() {
       try {
-        const n = parseInt(tail_lines.value||'200',10);
-        const res = await fetch('/api/admin/security_log?lines='+ (isNaN(n)?200:n), {headers: authHeaders()});
-        const txt = await res.text(); if(!res.ok) throw new Error('erro '+res.status); log(txt);
+        const allow = ip_allow.value.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
+        const deny  = ip_deny.value.split(/\\r?\\n/).map(s => s.trim()).filter(Boolean);
+        const data = await call('/api/admin/ip_lists', { method:'POST', body: JSON.stringify({allow, deny}) });
+        log(data);
       } catch(e){ showError(e); }
     }
-    async function clearLog(){ try { log(await call('/api/admin/security_log/clear',{method:'POST'})); } catch(e){ showError(e); } }
 
-    // ---- Integrações ----
-    async function igCreate(){
+    async function tailLog() {
       try {
-        const provider = ig_provider.value.trim(), label = ig_label.value.trim(), token = ig_token.value.trim();
-        if (!provider || !label || !token){ log('preencha provider/label/token'); return; }
-        log(await call('/api/integrations', {method:'POST', body: JSON.stringify({provider, account_label: label, token})}));
+        const n = parseInt(tail_lines.value || '200', 10);
+        const res = await fetch('/api/admin/security_log?lines=' + (isNaN(n)?200:n), { headers: authHeaders() });
+        const txt = await res.text();
+        if (!res.ok) throw new Error('erro ' + res.status);
+        log(txt);
       } catch(e){ showError(e); }
     }
-    async function igList(){
-      try { log(await call('/api/integrations')); }
-      catch(e){ showError(e); }
-    }
-    async function igTest(){
-      try { const id = +ig_id.value; if(!id){ log('informe id'); return; } log(await call(`/api/integrations/${id}/test`, {method:'POST'})); }
-      catch(e){ showError(e); }
-    }
-    async function igRotate(){
+
+    async function clearLog() {
       try {
-        const id = +ig_id.value; if(!id){ log('informe id'); return; }
-        const token = prompt('Novo token:'); if(!token){ log('cancelado'); return; }
-        log(await call(`/api/integrations/${id}/rotate`, {method:'POST', body: JSON.stringify({token})}));
+        const data = await call('/api/admin/security_log/clear', { method:'POST' });
+        log(data);
       } catch(e){ showError(e); }
     }
-    async function igDelete(){
-      try { const id = +ig_id.value; if(!id){ log('informe id'); return; } log(await call(`/api/integrations/${id}`, {method:'DELETE'})); }
-      catch(e){ showError(e); }
+
+    function authHeaders(){
+      const t = localStorage.getItem(tokenKey);
+      return t ? {'Authorization':'Bearer '+t} : {};
     }
   </script>
 </body>

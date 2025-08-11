@@ -1,12 +1,12 @@
 
 from __future__ import annotations
-import os, sqlite3, time, json, base64, hashlib
+import os, sqlite3, time, json
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Deque, Dict, Tuple, List
 
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -36,11 +36,12 @@ def _int(env, default):
 # Defaults (podem ser alterados via /api/admin/rate_limits)
 DEFAULT_RL = {
     "login_max":   _int("RATE_LIMIT_LOGIN_ATTEMPTS",   5),
-    "login_win":   _int("RATE_LIMIT_LOGIN_WINDOW_SEC", 600),
+    "login_win":   _int("RATE_LIMIT_LOGIN_WINDOW_SEC", 600),  # 10 min
     "signup_max":  _int("RATE_LIMIT_SIGNUP_ATTEMPTS",  5),
-    "signup_win":  _int("RATE_LIMIT_SIGNUP_WINDOW_SEC",600),
+    "signup_win":  _int("RATE_LIMIT_SIGNUP_WINDOW_SEC",600),  # 10 min
     "reset_max":   _int("RATE_LIMIT_RESET_ATTEMPTS",   5),
     "reset_win":   _int("RATE_LIMIT_RESET_WINDOW_SEC", 300),
+    # nº de usuários distintos que um mesmo IP pode logar na janela
     "distinct_max": _int("RATE_LIMIT_DISTINCT_USERS_MAX", 5),
     "distinct_win": _int("RATE_LIMIT_DISTINCT_USERS_WINDOW_SEC", 600),
 }
@@ -51,7 +52,7 @@ DEV_SHOW_RESET_TOKEN = os.getenv("DEV_SHOW_RESET_TOKEN", "false").lower() in ("1
 ACCESS_TOKEN_EXPIRE_HOURS = _int("ACCESS_TOKEN_EXPIRE_HOURS", 8)
 REFRESH_TOKEN_EXPIRE_DAYS = _int("REFRESH_TOKEN_EXPIRE_DAYS", 7)
 
-# Rate limit JSON
+# Carrega/salva RL em JSON
 def load_rate_limits() -> dict:
     if RL_FILE.exists():
         try:
@@ -66,7 +67,7 @@ def save_rate_limits(cfg: dict) -> None:
 
 RL = load_rate_limits()
 
-# IP allow/deny JSON
+# Allow/Deny IP lists
 def load_ip_lists() -> dict:
     if IP_FILE.exists():
         try:
@@ -114,23 +115,6 @@ def init_db():
           created_at TEXT NOT NULL,
           role TEXT NOT NULL DEFAULT 'user'
         );
-
-        CREATE TABLE IF NOT EXISTS integrations (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          owner TEXT NOT NULL,
-          provider TEXT NOT NULL,
-          account_label TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'active',
-          created_at TEXT NOT NULL,
-          FOREIGN KEY(owner) REFERENCES users(username) ON DELETE CASCADE
-        );
-
-        CREATE TABLE IF NOT EXISTS integration_secrets (
-          integration_id INTEGER PRIMARY KEY,
-          secret_enc TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          FOREIGN KEY(integration_id) REFERENCES integrations(id) ON DELETE CASCADE
-        );
         """)
         conn.commit()
     finally:
@@ -143,7 +127,6 @@ def run_migrations():
         if "role" not in cols:
             conn.execute("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'")
             conn.commit()
-        # tables de integrações já são criadas em init_db()
     finally:
         conn.close()
 
@@ -190,18 +173,9 @@ class IpListsIn(BaseModel):
     allow: Optional[List[str]] = None
     deny: Optional[List[str]] = None
 
-# Integrações
-class IntegrationCreate(BaseModel):
-    provider: str
-    account_label: str
-    token: str
-
-class IntegrationRotate(BaseModel):
-    token: str
-
 # ------------------------ Security utils -----------------
-_RL_BUCKETS: Dict[str, Deque[float]] = {}
-_RL_DISTINCT: Dict[str, Deque[Tuple[float, str]]] = {}
+_RL_BUCKETS: Dict[str, Deque[float]] = {}                 # tentativas por IP/ação
+_RL_DISTINCT: Dict[str, Deque[Tuple[float, str]]] = {}    # logins bem-sucedidos por IP/username
 
 def client_ip(req: Request) -> str:
     xf = (req.headers.get("x-forwarded-for") or "").split(",")[0].strip()
@@ -255,6 +229,7 @@ def account_switch_register(ip: str, username: str) -> None:
     dq.append((now, username))
 
 def ip_allowed(ip: str) -> bool:
+    # deny tem prioridade
     if any(ip == d or (d.endswith(".*") and ip.startswith(d[:-1])) for d in IPCFG["deny"]):
         return False
     allow = IPCFG.get("allow", [])
@@ -265,20 +240,6 @@ def ip_allowed(ip: str) -> bool:
 def enforce_ip_or_403(ip: str):
     if not ip_allowed(ip):
         raise HTTPException(status_code=403, detail="IP not allowed")
-
-# ------------------------ Crypto helpers ----------------
-def fernet():
-    # Deriva uma chave de 32 bytes do SECRET_KEY (não é KDF forte, é DEV-friendly)
-    from cryptography.fernet import Fernet
-    h = hashlib.sha256(SECRET_KEY.encode("utf-8")).digest()
-    k = base64.urlsafe_b64encode(h)
-    return Fernet(k)
-
-def enc_token(plain: str) -> str:
-    return fernet().encrypt(plain.encode("utf-8")).decode("utf-8")
-
-def dec_token(token_enc: str) -> str:
-    return fernet().decrypt(token_enc.encode("utf-8")).decode("utf-8")
 
 # ------------------------ Auth helpers -----------------
 def create_access_token(sub: str, role: str, expires: Optional[timedelta] = None) -> str:
@@ -320,20 +281,18 @@ def get_current_user(request: Request) -> str:
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-def get_user_role(username: str) -> str:
+def require_admin(user: str = Depends(get_current_user)) -> str:
     conn = get_db()
     try:
-        row = conn.execute("SELECT role FROM users WHERE username=?", (username,)).fetchone()
-        return row[0] if row else "user"
+        row = conn.execute("SELECT role FROM users WHERE username=?", (user,)).fetchone()
+        role = row[0] if row else "user"
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Admin only")
+        return user
     finally:
         conn.close()
 
-def require_admin(user: str = Depends(get_current_user)) -> str:
-    if get_user_role(user) != "admin":
-        raise HTTPException(status_code=403, detail="Admin only")
-    return user
-
-# ------------------------ Routes: Auth core -----------------------
+# ------------------------ Routes -----------------------
 @app.post("/api/signup")
 def api_signup(body: SignUp, request: Request):
     ip = client_ip(request)
@@ -507,7 +466,6 @@ def change_password(body: ChangePasswordIn, user: str = Depends(get_current_user
     finally:
         conn.close()
 
-# ------------------------ Admin: RL, IP, Logs -----------------------
 @app.get("/api/admin/ping")
 def admin_ping(user: str = Depends(require_admin), request: Request = None):
     if request is not None:
@@ -575,122 +533,6 @@ def security_log_clear(user: str = Depends(require_admin)):
     except Exception:
         raise HTTPException(status_code=500, detail="cannot clear log")
 
-# ------------------------ Integrações -----------------------
-def _must_be_owner_or_admin(request_user: str, owner: str):
-    role = get_user_role(request_user)
-    if request_user != owner and role != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-@app.post("/api/integrations")
-def create_integration(body: IntegrationCreate, user: str = Depends(get_current_user), request: Request = None):
-    ip = client_ip(request) if request else ""
-    if not body.provider or not body.account_label or not body.token:
-        raise HTTPException(status_code=400, detail="Missing fields")
-    now = datetime.utcnow().isoformat()+"Z"
-    conn = get_db()
-    try:
-        cur = conn.execute(
-            "INSERT INTO integrations (owner, provider, account_label, status, created_at) VALUES (?, ?, ?, 'active', ?)",
-            (user, body.provider.strip(), body.account_label.strip(), now)
-        )
-        iid = cur.lastrowid
-        conn.execute(
-            "INSERT INTO integration_secrets (integration_id, secret_enc, updated_at) VALUES (?, ?, ?)",
-            (iid, enc_token(body.token), now)
-        )
-        conn.commit()
-        sec_log("integration_create", "ok", user=user, ip=ip, extra=f"id={iid}, provider={body.provider}")
-        return {"ok": True, "id": iid}
-    finally:
-        conn.close()
-
-@app.get("/api/integrations")
-def list_integrations(user: str = Depends(get_current_user), request: Request = None, all: int = 0):
-    ip = client_ip(request) if request else ""
-    conn = get_db()
-    try:
-        if all and get_user_role(user) == "admin":
-            rows = conn.execute("SELECT id, owner, provider, account_label, status, created_at FROM integrations ORDER BY id DESC").fetchall()
-        else:
-            rows = conn.execute("SELECT id, owner, provider, account_label, status, created_at FROM integrations WHERE owner=? ORDER BY id DESC", (user,)).fetchall()
-        data = [dict(id=r[0], owner=r[1], provider=r[2], account_label=r[3], status=r[4], created_at=r[5]) for r in rows]
-        sec_log("integration_list", "ok", user=user, ip=ip, extra=f"count={len(data)}")
-        return {"items": data}
-    finally:
-        conn.close()
-
-def _get_integration(conn, iid: int):
-    row = conn.execute("SELECT id, owner, provider, account_label, status, created_at FROM integrations WHERE id=?", (iid,)).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Integration not found")
-    return dict(id=row[0], owner=row[1], provider=row[2], account_label=row[3], status=row[4], created_at=row[5])
-
-@app.get("/api/integrations/{iid}")
-def get_integration(iid: int, user: str = Depends(get_current_user), request: Request = None):
-    ip = client_ip(request) if request else ""
-    conn = get_db()
-    try:
-        it = _get_integration(conn, iid)
-        _must_be_owner_or_admin(user, it["owner"])
-        sec_log("integration_get", "ok", user=user, ip=ip, extra=f"id={iid}")
-        return it
-    finally:
-        conn.close()
-
-@app.post("/api/integrations/{iid}/rotate")
-def rotate_integration(iid: int, body: IntegrationRotate, user: str = Depends(get_current_user), request: Request = None):
-    ip = client_ip(request) if request else ""
-    if not body.token:
-        raise HTTPException(status_code=400, detail="Missing token")
-    conn = get_db()
-    try:
-        it = _get_integration(conn, iid)
-        _must_be_owner_or_admin(user, it["owner"])
-        now = datetime.utcnow().isoformat()+"Z"
-        conn.execute("UPDATE integration_secrets SET secret_enc=?, updated_at=? WHERE integration_id=?", (enc_token(body.token), now, iid))
-        conn.commit()
-        sec_log("integration_rotate", "ok", user=user, ip=ip, extra=f"id={iid}")
-        return {"ok": True}
-    finally:
-        conn.close()
-
-@app.post("/api/integrations/{iid}/test")
-def test_integration(iid: int, user: str = Depends(get_current_user), request: Request = None):
-    # Mock: no futuro chamaremos o provider. Por ora, valida que existe secret.
-    ip = client_ip(request) if request else ""
-    conn = get_db()
-    try:
-        it = _get_integration(conn, iid)
-        _must_be_owner_or_admin(user, it["owner"])
-        row = conn.execute("SELECT secret_enc FROM integration_secrets WHERE integration_id=?", (iid,)).fetchone()
-        if not row:
-            raise HTTPException(status_code=500, detail="Secret missing")
-        try:
-            plain = dec_token(row[0])
-            ok = True if plain else False
-        except Exception:
-            ok = False
-        sec_log("integration_test", "ok" if ok else "invalid", user=user, ip=ip, extra=f"id={iid}")
-        return {"ok": ok}
-    finally:
-        conn.close()
-
-@app.delete("/api/integrations/{iid}")
-def delete_integration(iid: int, user: str = Depends(get_current_user), request: Request = None):
-    ip = client_ip(request) if request else ""
-    conn = get_db()
-    try:
-        it = _get_integration(conn, iid)
-        _must_be_owner_or_admin(user, it["owner"])
-        conn.execute("DELETE FROM integration_secrets WHERE integration_id=?", (iid,))
-        conn.execute("DELETE FROM integrations WHERE id=?", (iid,))
-        conn.commit()
-        sec_log("integration_delete", "ok", user=user, ip=ip, extra=f"id={iid}")
-        return {"ok": True}
-    finally:
-        conn.close()
-
-# ------------------------ Misc -----------------------
 @app.post("/api/setup/admin_once")
 def admin_once(body: SeedAdminIn):
     if not DEV_ALLOW_SEED_ADMIN:

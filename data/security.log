@@ -14,3 +14,12 @@
 2025-08-10T23:07:19.726054Z action=login status=ok user=marco ip=127.0.0.1 role=user
 2025-08-10T23:08:09.100872Z action=login status=ok user=bia ip=127.0.0.1 role=admin
 2025-08-10T23:10:41.979084Z action=reset_request status=ok user=marco ip=127.0.0.1 
+2025-08-11T01:15:50.613044Z action=integration_list status=ok user=bia ip=127.0.0.1 count=0
+2025-08-11T01:16:13.315544Z action=login status=ok user=bia ip=127.0.0.1 role=admin
+2025-08-11T01:16:14.335685Z action=login status=ok user=bia ip=127.0.0.1 role=admin
+2025-08-11T01:16:25.222602Z action=integration_list status=ok user=bia ip=127.0.0.1 count=0
+2025-08-11T01:17:04.785087Z action=integration_create status=ok user=bia ip=127.0.0.1 id=1, provider=TikTok
+2025-08-11T01:17:10.579283Z action=integration_create status=ok user=bia ip=127.0.0.1 id=2, provider=TikTok
+2025-08-11T01:17:19.476573Z action=integration_list status=ok user=bia ip=127.0.0.1 count=2
+2025-08-11T01:17:40.512506Z action=integration_list status=ok user=bia ip=127.0.0.1 count=2
+2025-08-11T01:18:01.810385Z action=integration_test status=ok user=bia ip=127.0.0.1 id=2
