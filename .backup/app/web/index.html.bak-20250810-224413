@@ -149,7 +149,7 @@
       </div>
       <button onclick="run(this, tailLog)">Tail</button>
       <a id="dl" href="/api/admin/security_log/download" target="_blank"><button>Download</button></a>
-      <button onclick="run(this, clearLog)">Clear</button>
+      <button onclick="clearLog()">Clear</button>
     </div>
 
     <div class="card">

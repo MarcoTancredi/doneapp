@@ -14,9 +14,6 @@
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .row > div{flex:1;min-width:200px}
     button{border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:#7aa2ff;color:#0b0f1f;margin-right:8px;margin-top:8px}
-    .green{background:#22c55e}
-    .red{background:#ef4444}
-    .blue{background:#7aa2ff}
     pre{white-space:pre-wrap;background:#0b0f1f;border:1px solid #2b365f;border-radius:12px;padding:10px}
   </style>
 </head>
@@ -30,7 +27,7 @@
         <div><input id="su_user" placeholder="username"></div>
         <div><input id="su_pass" type="password" placeholder="password"></div>
       </div>
-      <button onclick="run(this, signup)">Criar</button>
+      <button onclick="signup()">Criar</button>
     </div>
 
     <div class="card">
@@ -39,19 +36,19 @@
         <div><input id="li_user" placeholder="username"></div>
         <div><input id="li_pass" type="password" placeholder="password"></div>
       </div>
-      <button onclick="run(this, login)">Entrar</button>
-      <button onclick="run(this, logout)">Logout</button>
+      <button onclick="login()">Entrar</button>
+      <button onclick="logout()">Logout</button>
     </div>
 
     <div class="card">
       <h3>Tokens</h3>
-      <button onclick="run(this, refresh)">Refresh access token</button>
+      <button onclick="refresh()">Refresh access token</button>
     </div>
 
     <div class="card">
       <h3>Perfil</h3>
-      <button onclick="run(this, me)">/api/me</button>
-      <button onclick="run(this, usersMe)">/api/users/me</button>
+      <button onclick="me()">/api/me</button>
+      <button onclick="usersMe()">/api/users/me</button>
     </div>
 
     <div class="card">
@@ -59,12 +56,12 @@
       <div class="row">
         <div><input id="rs_user" placeholder="username para reset"></div>
       </div>
-      <button onclick="run(this, resetRequest)">Gerar token de reset</button>
+      <button onclick="resetRequest()">Gerar token de reset</button>
       <div class="row">
         <div><input id="rs_token" placeholder="token de reset"></div>
         <div><input id="rs_new" type="password" placeholder="nova senha"></div>
       </div>
-      <button onclick="run(this, resetConfirm)">Confirmar reset</button>
+      <button onclick="resetConfirm()">Confirmar reset</button>
     </div>
 
     <div class="card">
@@ -73,7 +70,7 @@
         <div><input id="cp_curr" type="password" placeholder="senha atual"></div>
         <div><input id="cp_new"  type="password" placeholder="nova senha"></div>
       </div>
-      <button onclick="run(this, changePassword)">Change password</button>
+      <button onclick="changePassword()">Change password</button>
     </div>
 
     <div class="card">
@@ -81,8 +78,8 @@
       <div class="row">
         <div><input id="ad_user" placeholder="username para promover a admin (uma única vez)"></div>
       </div>
-      <button onclick="run(this, seedAdmin)">Seed admin (once)</button>
-      <button onclick="run(this, adminPing)">Admin ping</button>
+      <button onclick="seedAdmin()">Seed admin (once)</button>
+      <button onclick="adminPing()">Admin ping</button>
     </div>
 
     <div class="card">
@@ -99,8 +96,8 @@
         <div><input id="rl_distinct_max" type="number" min="1" placeholder="distinct_max (users/IP)"></div>
         <div><input id="rl_distinct_win" type="number" min="1" placeholder="distinct_win (s)"></div>
       </div>
-      <button onclick="run(this, loadRateLimits)">Carregar</button>
-      <button onclick="run(this, saveRateLimits)">Salvar</button>
+      <button onclick="loadRateLimits()">Carregar</button>
+      <button onclick="saveRateLimits()">Salvar</button>
     </div>
 
     <div class="card">
@@ -115,8 +112,8 @@
           <textarea id="ip_deny"></textarea>
         </div>
       </div>
-      <button onclick="run(this, loadIpLists)">Carregar</button>
-      <button onclick="run(this, saveIpLists)">Salvar</button>
+      <button onclick="loadIpLists()">Carregar</button>
+      <button onclick="saveIpLists()">Salvar</button>
     </div>
 
     <div class="card">
@@ -128,18 +125,18 @@
       <div class="row">
         <div><input id="ig_token" placeholder="token de acesso / api key"></div>
       </div>
-      <button onclick="run(this, igCreate)">Criar integração</button>
+      <button onclick="igCreate()">Criar integração</button>
     </div>
 
     <div class="card">
       <h3>Integrações — Gerenciar</h3>
-      <button onclick="run(this, igList)">Listar minhas integrações</button>
+      <button onclick="igList()">Listar minhas integrações</button>
       <div class="row">
         <div><input id="ig_id" type="number" placeholder="integration id"></div>
       </div>
-      <button onclick="run(this, igTest)">Testar</button>
-      <button onclick="run(this, igRotate)">Rotacionar token</button>
-      <button onclick="run(this, igDelete)">Excluir</button>
+      <button onclick="igTest()">Testar</button>
+      <button onclick="igRotate()">Rotacionar token</button>
+      <button onclick="igDelete()">Excluir</button>
     </div>
 
     <div class="card">
@@ -147,9 +144,9 @@
       <div class="row">
         <div><input id="tail_lines" type="number" min="1" value="200" placeholder="linhas"></div>
       </div>
-      <button onclick="run(this, tailLog)">Tail</button>
+      <button onclick="tailLog()">Tail</button>
       <a id="dl" href="/api/admin/security_log/download" target="_blank"><button>Download</button></a>
-      <button onclick="run(this, clearLog)">Clear</button>
+      <button onclick="clearLog()">Clear</button>
     </div>
 
     <div class="card">
@@ -163,30 +160,6 @@
       (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     const tokenKey = 'doneapp_token';
     const refreshKey = 'doneapp_refresh';
-    function setBtnState(btn, cls){
-      try{ btn.classList.remove('green','red','blue'); }catch(_){}
-      try{ if(cls) btn.classList.add(cls); }catch(_){}
-    }
-    function run(btn, fn){
-      if(!btn || btn.disabled) return;
-      btn.disabled = true;
-      setBtnState(btn,'green');
-      const finalize = () => {
-        setTimeout(() => { setBtnState(btn,'blue'); btn.disabled = false; }, 3000);
-      };
-      try{
-        const r = fn();
-        if (r && typeof r.then === 'function'){
-          r.then(() => finalize())
-           .catch(e => { setBtnState(btn,'red'); showError(e); finalize(); });
-        } else {
-          finalize();
-        }
-      }catch(e){
-        setBtnState(btn,'red'); showError(e); finalize();
-      }
-    }
-
 
     function authHeaders(){
       const t = localStorage.getItem(tokenKey);
