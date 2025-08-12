@@ -235,61 +235,12 @@
       }catch(err){ console.error('oauth start error', err); }
     });
 
-    // Pós-callback: mostra modal de sucesso ou erro no botão
-    (function(){
-      function ensureModal(){
-        if (document.getElementById('ssoModal')) return;
-        const style = document.createElement('style');
-        style.textContent = `
-          .modal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);z-index:50}
-          .modal.show{display:grid}
-          .modal .box{width:min(360px,92vw);border-radius:16px;padding:18px 16px;
-            background:rgba(255,255,255,.12);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-            border:1px solid rgba(255,255,255,.22);color:inherit}
-          .modal h3{margin:0 0 6px;font-size:18px}
-          .modal p{margin:0 0 14px;opacity:.85}
-          .modal .row{display:flex;gap:10px;justify-content:flex-end}
-          .modal button{padding:10px 14px;border-radius:10px;border:0;cursor:pointer}
-        `;
-        document.head.appendChild(style);
-        const m = document.createElement('div'); m.id='ssoModal'; m.className='modal';
-        m.innerHTML = `
-          <div class="box">
-            <h3>Conectado com YouTube</h3>
-            <p>Autorização concluída. Vamos te levar ao cadastro para finalizar.</p>
-            <div class="row">
-              <button id="ssoBack">Voltar</button>
-              <button id="ssoClose">Desligar</button>
-            </div>
-          </div>`;
-        document.body.appendChild(m);
-        document.getElementById('ssoBack').onclick = ()=>{ m.classList.remove('show'); };
-        document.getElementById('ssoClose').onclick = ()=>{ location.href = location.pathname; };
-      }
-      function flashDenied(){
-        const btn = document.getElementById('btnLogin'); if(!btn) return;
-        const t = btn.textContent;
-        const bg = btn.style.background;
-        btn.textContent = "NÃO autorizado";
-        btn.style.background = "#ef4444";
-        setTimeout(()=>{ btn.textContent = t; btn.style.background = bg || ""; }, 3000);
-      }
-      function parseHash(){
-        if (!location.hash) return;
-        const h = location.hash.slice(1);
-        const p = new URLSearchParams(h);
-        if (p.get('sso') === 'google'){
-          if (p.get('ok') === '1'){
-            ensureModal();
-            document.getElementById('ssoModal').classList.add('show');
-          } else {
-            flashDenied();
-          }
-          history.replaceState(null,'',location.pathname);
-        }
-      }
-      parseHash();
-    })();
+    // pós-callback: hash #sso=google&ok=1
+    if (location.hash.includes('sso=google')){
+      console.log('Google conectado:', location.hash);
+      history.replaceState(null,'',location.pathname);
+      // aqui depois podemos abrir um toast ou avançar para cadastro
+    }
 
   </script>
 </body>
