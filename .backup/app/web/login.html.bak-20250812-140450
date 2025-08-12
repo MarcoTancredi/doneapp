@@ -196,10 +196,6 @@
         leftLink.textContent = "Primeiro Acesso? Cadastrar";
         rightLink.textContent = "Templates";
         leftLink.onclick = (e)=>{ e.preventDefault(); /* navegar para cadastro (futuro) */ };
-        leftLink.textContent = "Primeiro Acesso? Cadastrar";
-        rightLink.textContent = "Templates";
-        leftLink.onclick = (e)=>{ e.preventDefault(); location.href = "/web/register_v2.html"; };
-
         rightLink.onclick = (e)=>{ e.preventDefault(); picking = true; updateCenterLabel(); renderFooter(); };
         orText.textContent = "ou continue com";
       } else {

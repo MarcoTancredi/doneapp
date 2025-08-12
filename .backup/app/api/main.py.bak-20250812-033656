@@ -96,8 +96,6 @@ WEB_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 app.include_router(oauth_google_router)
 
-app.include_router(oauth_google_router)
-
 
 
 @app.get("/", include_in_schema=False)

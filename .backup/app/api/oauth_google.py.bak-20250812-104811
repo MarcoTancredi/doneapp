@@ -8,9 +8,8 @@ import httpx
 router = APIRouter(prefix="/api/oauth/google", tags=["oauth-google"])
 
 # Sessões in-memory (dev). TTL curto.
-_SESS = {}        # para state->verifier (start->callback)
-_SSO_SESS = {}    # para sid-> { profile, tokens, ts }
-_TTL = 10 * 60    # 10min
+_SESS = {}
+_TTL = 10 * 60  # 10min
 
 def _b64url(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")
@@ -20,22 +19,19 @@ def _pkce_verifier() -> str:
     return _b64url(secrets.token_bytes(64))
 
 def _pkce_challenge(verifier: str) -> str:
-    import hashlib
     digest = hashlib.sha256(verifier.encode("ascii")).digest()
     return _b64url(digest)
 
-def _gc():
+def _gc(key: str):
+    # coleta simples de sessões expiradas
     now = time.time()
     for k, v in list(_SESS.items()):
         if now - v["ts"] > _TTL:
             _SESS.pop(k, None)
-    for k, v in list(_SSO_SESS.items()):
-        if now - v["ts"] > _TTL:
-            _SSO_SESS.pop(k, None)
 
 @router.post("/start")
 async def oauth_start():
-    _gc()
+    _gc("all")
     cid = os.environ.get("GOOGLE_CLIENT_ID")
     redir = os.environ.get("GOOGLE_REDIRECT_URI")
     scopes = os.environ.get("GOOGLE_SCOPES", "openid email profile https://www.googleapis.com/auth/youtube.readonly")
@@ -57,15 +53,14 @@ async def oauth_start():
         "code_challenge": challenge,
         "code_challenge_method": "S256",
         "include_granted_scopes": "true",
-        "access_type": "offline",
-        "prompt": "consent",
+        "access_type": "offline",      # tenta refresh_token
+        "prompt": "consent",           # força consentimento em dev
     }
     url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(q)
     return JSONResponse({"url": url})
 
 @router.get("/callback")
 async def oauth_callback(request: Request):
-    _gc()
     params = dict(request.query_params)
     error = params.get("error")
     if error:
@@ -94,71 +89,16 @@ async def oauth_callback(request: Request):
         "grant_type": "authorization_code",
         "redirect_uri": redir,
     }
-    async with httpx.AsyncClient(timeout=25) as client:
+    async with httpx.AsyncClient(timeout=20) as client:
         r = await client.post("https://oauth2.googleapis.com/token", data=data)
         if r.status_code != 200:
             return RedirectResponse(f"/web/login.html#sso=google&error=token_exchange_{r.status_code}")
+
         tokens = r.json()
-        access_token = tokens.get("access_token")
-        if not access_token:
-            return RedirectResponse("/web/login.html#sso=google&error=missing_access_token")
+        # TODO: salvar tokens criptografados nas tabelas de integração (futuro)
+        # access_token = tokens.get("access_token")
+        # refresh_token = tokens.get("refresh_token")
+        # expires_in = tokens.get("expires_in")
 
-        # userinfo OIDC
-        ur = await client.get(
-            "https://openidconnect.googleapis.com/v1/userinfo",
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        if ur.status_code != 200:
-            return RedirectResponse(f"/web/login.html#sso=google&error=userinfo_{ur.status_code}")
-        ui = ur.json()
-        profile = {
-            "provider": "google",
-            "sub": ui.get("sub"),
-            "email": ui.get("email"),
-            "email_verified": ui.get("email_verified"),
-            "name": ui.get("name"),
-            "given_name": ui.get("given_name"),
-            "family_name": ui.get("family_name"),
-            "picture": ui.get("picture"),
-        }
-
-    # cria sid para tela de cadastro (dev: memória)
-    sid = secrets.token_urlsafe(18)
-    _SSO_SESS[sid] = {"profile": profile, "tokens": tokens, "ts": time.time()}
-
-    web_base = os.environ.get("APP_WEB_BASE") or os.environ.get("WEB_BASE_URL") or "https://app.planetamicro.com.br"
-    success = os.environ.get("OAUTH_SUCCESS_REDIRECT") or "/web/register.html"
-    # Se não for absoluto, monta com o domínio do APP
-    if not success.startswith("http"):
-        if not success.startswith("/"):
-            success = "/" + success
-        success = f"{web_base}{success}"
-    sep = "&" if "?" in success else "?"
-    return RedirectResponse(f"{success}{sep}sid={sid}")
-
-@router.get("/session/{sid}")
-async def get_session(sid: str):
-    _gc()
-    s = _SSO_SESS.get(sid)
-    if not s:
-        return JSONResponse({"error":"expired_or_not_found"}, status_code=404)
-    # não devolvemos tokens no front
-    return {"ok": True, "sid": sid, "profile": s["profile"]}
-
-@router.delete("/session/{sid}")
-async def delete_session(sid: str):
-    _SSO_SESS.pop(sid, None)
-    return {"ok": True}
-
-@router.post("/session/{sid}/finalize")
-async def finalize_session(sid: str, req: Request):
-    """
-    Próxima etapa real: criar usuário no DB e vincular integração.
-    Por ora, apenas confirma e remove a sessão.
-    """
-    s = _SSO_SESS.pop(sid, None)
-    if not s:
-        return JSONResponse({"error":"expired_or_not_found"}, status_code=404)
-    body = await req.json()
-    # username, name, email (do body) — validações ficarão na etapa DB
-    return {"ok": True, "username": body.get("username"), "email": body.get("email")}
+    success = os.environ.get("OAUTH_SUCCESS_REDIRECT", "/web/login.html")
+    return RedirectResponse(f"{success}#sso=google&ok=1")

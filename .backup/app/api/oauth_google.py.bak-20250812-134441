@@ -126,13 +126,7 @@ async def oauth_callback(request: Request):
     sid = secrets.token_urlsafe(18)
     _SSO_SESS[sid] = {"profile": profile, "tokens": tokens, "ts": time.time()}
 
-    web_base = os.environ.get("APP_WEB_BASE") or os.environ.get("WEB_BASE_URL") or "https://app.planetamicro.com.br"
-    success = os.environ.get("OAUTH_SUCCESS_REDIRECT") or "/web/register.html"
-    # Se não for absoluto, monta com o domínio do APP
-    if not success.startswith("http"):
-        if not success.startswith("/"):
-            success = "/" + success
-        success = f"{web_base}{success}"
+    success = os.environ.get("OAUTH_SUCCESS_REDIRECT", "/web/register.html")
     sep = "&" if "?" in success else "?"
     return RedirectResponse(f"{success}{sep}sid={sid}")
 
