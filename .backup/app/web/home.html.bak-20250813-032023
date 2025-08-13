@@ -1,0 +1,26 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Home — DoneApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>body{margin:0;display:grid;place-items:center;min-height:100vh;background:#0b1024;color:#e5e7eb;font:14px system-ui}</style>
+</head>
+<body>
+  <div>Carregando…</div>
+  <script>
+  (async()=>{
+    try{
+      const r = await fetch('/api/me');
+      if (r.status===401){ location.href='/web/login.html'; return; }
+      const j = await r.json();
+      const klass = (j.class||'0000000000');
+      const adminDigit = klass.charAt(4); // dígito "Admin"
+      if (adminDigit==='9'){ location.href='/web/admin.html'; }
+      else { location.href='/web/clients.html'; }
+    }catch(e){ location.href='/web/login.html'; }
+  })();
+  </script>
+</body>
+</html>

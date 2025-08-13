@@ -1,0 +1,12 @@
+
+param(
+  [string]$DbPath = "data/app.db"
+)
+Write-Host ">>> Reset DB (dev) — removendo $DbPath"
+if (Test-Path $DbPath) {
+  Remove-Item -Force $DbPath
+  Write-Host "OK: $DbPath removido."
+} else {
+  Write-Host "OK: DB já não existe."
+}
+Write-Host ">>> Ao iniciar a API, as tabelas serão recriadas."

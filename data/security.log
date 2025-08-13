@@ -25,3 +25,5 @@
 2025-08-11T01:18:01.810385Z action=integration_test status=ok user=bia ip=127.0.0.1 id=2
 2025-08-12T17:10:01.417254Z action=signup status=ok user=Bia ip=191.254.128.214 
 2025-08-12T17:15:48.554642Z action=signup status=ok user=Marco ip=191.254.128.214 
+2025-08-13T06:07:18.722745Z action=signup status=ok user=ddd ip=127.0.0.1 
+2025-08-13T06:07:26.506964Z action=login status=ok user=ddd ip=127.0.0.1 role=user

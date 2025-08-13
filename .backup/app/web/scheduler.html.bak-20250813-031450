@@ -1,0 +1,452 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Agendar — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;display:grid;place-items:start center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+ .wrap{width:min(1100px,96vw);padding:22px}
+ .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111827;border:1px solid #334155;padding:10px 14px;border-radius:10px;opacity:0.95}
+ .card{background:#0b1226;border:1px solid #1f2a44;padding:16px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+ h2{margin:0 0 10px}
+ .top{display:grid;grid-template-columns:1.2fr 1.8fr 1.8fr;gap:10px;margin-bottom:12px}
+ .field label{display:block;margin:0 0 6px;opacity:.9}
+ select,input[type=text],input[type=time],input[type=date],input[type=number]{width:100%;padding:11px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+ .grid2{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+ textarea{width:100%;min-height:110px;padding:11px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+ .muted{opacity:.85}
+ .drop{border:2px dashed #334155;border-radius:12px;padding:16px;display:grid;place-items:center;background:#0f172a}
+ .thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+ .thumb{width:120px;height:120px;border:1px solid #334155;border-radius:10px;overflow:hidden;display:grid;place-items:center;background:#0f172a}
+ .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+ .bar button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+ .bar .primary{background:#0ea5e9;color:#001020;border-color:#38bdf8}
+ .hr{height:1px;background:#1f2a44;margin:14px 0}
+ .row{display:grid;grid-template-columns:140px 1fr 80px 80px;gap:10px;align-items:center;margin:6px 0}
+ .row .name{position:relative}
+ .row .btnNet{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+ .row .btnNet.ready{background:#16a34a;border-color:#22c55e;color:#00180a}
+ .row .btnNet.selected{outline:2px solid #38bdf8}
+ .orderBadge{position:absolute;top:-10px;right:-10px;background:#0ea5e9;color:#001020;border-radius:999px;padding:2px 7px;font-weight:800;font-size:12px;border:2px solid #001020;display:none}
+ .row .btnNet.selected + .orderBadge{display:inline-block}
+ .tip{position:absolute;left:0;right:0;bottom:-24px;font-size:12px;opacity:.9;background:#111827;padding:6px 8px;border-radius:8px;display:none}
+ .count{text-align:center;opacity:.85}
+ .retag{text-align:center}
+ .list{font-size:13px}
+ .pill{display:inline-block;padding:4px 8px;background:#0f172a;border:1px solid #334155;border-radius:999px;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+
+    <h2>Agendamento</h2>
+
+    <!-- Topo: usuário / publicar para / autorizados -->
+    <div class="top">
+      <div class="field">
+        <label>Usuário (logado)</label>
+        <input id="userSelf" readonly>
+      </div>
+      <div class="field">
+        <label>Publicar para</label>
+        <select id="selClient"></select>
+        <div id="reqBox" class="muted" style="display:none;margin-top:6px">
+          <span>Solicitar autorização para publicar em: </span>
+          <input id="reqUser" placeholder="username" style="width:55%">
+          <button id="btnReq" style="margin-left:6px">Enviar</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Autorizados (por mim)</label>
+        <select id="selGrants"></select>
+        <div id="grantBox" class="muted" style="display:none;margin-top:6px">
+          <span>Conceder autorização para: </span>
+          <select id="grantPending" style="width:55%"></select>
+          <button id="btnGrant" style="margin-left:6px">Autorizar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data/Hora/Delay -->
+    <div class="grid2">
+      <div class="field">
+        <label>Data *</label>
+        <input id="date" type="date">
+      </div>
+      <div class="field">
+        <label>Hora *</label>
+        <input id="time" type="time" step="60">
+      </div>
+      <div class="field">
+        <label>Delay (seg)</label>
+        <input id="delay" type="number" min="0" value="30">
+      </div>
+    </div>
+
+    <!-- Texto -->
+    <div class="field" style="margin-top:10px">
+      <label>Texto da publicação *</label>
+      <textarea id="text" placeholder="Digite o texto da publicação"></textarea>
+      <div class="muted"><span id="textCount">0</span> caracteres</div>
+    </div>
+
+    <!-- Upload -->
+    <div class="hr"></div>
+    <div class="field">
+      <label>Upload da Imagem ou Vídeo *</label>
+      <div class="drop" id="drop">Arraste a mídia aqui ou clique para escolher.</div>
+      <input id="file" type="file" accept="image/*,video/*" style="display:none">
+      <div class="thumbs" id="thumbs"></div>
+      <div id="videoThumbBox" class="muted" style="display:none;margin-top:6px">
+        Vídeo detectado — envie um thumbnail:
+        <input id="thumbVideo" type="file" accept="image/*" style="margin-left:6px">
+      </div>
+      <div id="carouselBox" class="muted" style="display:none;margin-top:6px">
+        Imagem detectada — deseja **carrossel**? <input type="file" id="carousel" accept="image/*" multiple style="margin-left:6px">
+      </div>
+    </div>
+
+    <!-- Redes -->
+    <div class="hr"></div>
+    <div id="netGrid"></div>
+
+    <div class="hr"></div>
+
+    <!-- Barras de opções -->
+    <div class="bar">
+      <label><input type="checkbox" id="sameOrder"> Mesma ordem da última publicação</label>
+      <span style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="clearL">
+        <span>Apagar todos</span>
+        <input type="checkbox" id="clearR">
+      </span>
+      <button class="primary" id="btnSchedule">Agendar</button>
+      <button id="btnBack">Voltar</button>
+      <a class="pill" href="/web/schedule_history.html">Histórico</a>
+      <a class="pill" href="/web/integrations.html">Integrações</a>
+      <a class="pill" href="/web/profile.html">Perfil</a>
+    </div>
+
+    <div class="hr"></div>
+
+    <!-- Painel de agendamentos -->
+    <h3>Últimos agendamentos</h3>
+    <div id="list" class="list">Nenhum agendamento ainda.</div>
+
+  </div>
+</div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+function toast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 3200); }
+
+// ===== dados/estado =====
+const NETS = [
+  {k:'youtube',  n:'YouTube'},
+  {k:'tiktok',   n:'TikTok'},
+  {k:'instagram',n:'Instagram'},
+  {k:'facebook', n:'Facebook'},
+  {k:'kwai',     n:'Kwai'},
+  {k:'twitterx', n:'Twitter/X'},
+  {k:'linkedin', n:'LinkedIn'},
+];
+let SELF='me';        // username logado
+let CLIENT='me';      // publicar para
+let READY={};         // quais redes estão autorizadas para CLIENT (verde)
+let ORDER=[];         // ordem selecionada
+let TAGCOUNT={};
+const LS = {
+  last: 'doneapp.lastSchedules',
+  grants: 'doneapp.grants',            // [usernames] (quem pode publicar por mim)
+  reqs: 'doneapp.reqs',                // [usernames] (em nome de quem solicitei)
+  authPrefix: 'doneapp.authorized.'    // + <cliente> => {youtube:true,...}
+};
+
+// ===== util =====
+function ymd(dt){ return dt.toISOString().slice(0,10); }
+function hm(dt){ const p=n=>String(n).padStart(2,'0'); return p(dt.getHours())+':'+p(dt.getMinutes()); }
+function setDateTimePlus1h(){
+  const d=new Date(Date.now()+60*60*1000);
+  $('date').value = ymd(d);
+  $('time').value = hm(d);
+}
+function renderThumb(file){
+  const div=document.createElement('div'); div.className='thumb';
+  if(file.type.startsWith('image/')){ const img=new Image(); img.src=URL.createObjectURL(file); img.style.maxWidth='100%'; img.style.maxHeight='100%'; div.appendChild(img); }
+  else { div.textContent='[vídeo] '+(file.name||''); }
+  $('thumbs').appendChild(div);
+}
+// localStorage helpers
+function loadJSON(k,def){ try{ return JSON.parse(localStorage.getItem(k)||JSON.stringify(def)); }catch(_){ return def; } }
+function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+
+// ===== topo: combos =====
+function loadTopCombos(me){
+  SELF = me.username || 'me';
+  $('userSelf').value = SELF;
+  // "publicar para" — você é o primeiro
+  const clientSel = $('selClient');
+  clientSel.innerHTML = '';
+  [SELF, ...(loadJSON(LS.reqs,[]))].forEach(u=>{
+    const opt=document.createElement('option'); opt.value=u; opt.textContent=u; clientSel.appendChild(opt);
+  });
+  const optReq=document.createElement('option'); opt.value='__solicitar__'; opt.textContent='Solicitar autorização…'; clientSel.appendChild(opt);
+
+  clientSel.onchange = ()=>{
+    if(clientSel.value==='__solicitar__'){ $('reqBox').style.display='block'; }
+    else { $('reqBox').style.display='none'; CLIENT = clientSel.value; fetchAuthorized(CLIENT); }
+  };
+
+  $('btnReq').onclick = ()=>{
+    const u=($('reqUser').value||'').trim(); if(!u) return;
+    const arr=loadJSON(LS.reqs,[]); if(!arr.includes(u)) arr.push(u); saveJSON(LS.reqs,arr);
+    toast('Solicitação registrada (demo).'); $('reqUser').value=''; loadTopCombos(me);
+  };
+
+  // "autorizados por mim"
+  const grantsSel = $('selGrants');
+  grantsSel.innerHTML='';
+  const grants=loadJSON(LS.grants,[]);
+  [SELF, ...grants].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; grantsSel.appendChild(o); });
+  const optGrant=document.createElement('option'); optGrant.value='__conceder__'; optGrant.textContent='Conceder autorização…'; grantsSel.appendChild(optGrant);
+
+  // pendentes (quem me solicitou)
+  const pend=loadJSON(LS.reqs,[]);
+  const pendSel=$('grantPending'); pendSel.innerHTML='';
+  pend.forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u+' — aguardando'; pendSel.appendChild(o); });
+
+  grantsSel.onchange=()=>{
+    $('grantBox').style.display = grantsSel.value==='__conceder__' ? 'block':'none';
+  };
+  $('btnGrant').onclick=()=>{
+    const u = pendSel.value; if(!u) return;
+    const arr=loadJSON(LS.grants,[]); if(!arr.includes(u)) arr.push(u); saveJSON(LS.grants,arr);
+    // remove de pendências
+    const p=loadJSON(LS.reqs,[]).filter(x=>x!==u); saveJSON(LS.reqs,p);
+    toast('Autorização concedida (demo).'); loadTopCombos(me);
+  };
+
+  CLIENT = SELF;
+  fetchAuthorized(CLIENT);
+}
+
+// ===== redes autorizadas (verde) =====
+async function fetchAuthorized(client){
+  READY = {}; NETS.forEach(n=>READY[n.k]=false);
+  try{
+    const r=await fetch('/api/integrations?client='+encodeURIComponent(client));
+    if(r.ok){ const j=await r.json(); Object.assign(READY, j||{}); }
+    else throw 0;
+  }catch(_){
+    // demo local
+    Object.assign(READY, loadJSON(LS.authPrefix+client, {youtube:false,tiktok:false,instagram:false,facebook:false,kwai:false,twitterx:false,linkedin:false}));
+  }
+  renderNetRows();
+}
+
+// ===== redes: linhas e lógica de seleção/ordem =====
+function renderNetRows(){
+  const grid=$('netGrid'); grid.innerHTML='';
+  ORDER.length=0;
+
+  NETS.forEach(n=>{
+    const row=document.createElement('div'); row.className='row';
+
+    const name=document.createElement('div'); name.className='name';
+    const btn=document.createElement('button'); btn.className='btnNet'+(READY[n.k]?' ready':''); btn.textContent=n.n;
+    const badge=document.createElement('span'); badge.className='orderBadge'; badge.textContent='1';
+    const tip=document.createElement('div'); tip.className='tip'; tip.textContent='Rede não autorizada — clique para autorizar (quando backend estiver pronto).';
+    name.appendChild(btn); name.appendChild(badge); name.appendChild(tip);
+
+    const tags=document.createElement('input'); tags.type='text'; tags.placeholder=`#tags para ${n.n}`;
+    const count=document.createElement('div'); count.className='count'; count.textContent='0';
+    const retag=document.createElement('div'); retag.className='retag';
+    const cb=document.createElement('input'); cb.type='checkbox'; cb.title='ReTag'; retag.appendChild(cb);
+
+    // contador de hashtags:
+    tags.addEventListener('input', ()=>{ const c=(tags.value.match(/#/g)||[]).length; count.textContent=c; TAGCOUNT[n.k]=c; });
+
+    // retag: carrega últimos tags salvos para essa rede
+    cb.addEventListener('change', ()=>{
+      if(cb.checked){
+        const last = loadJSON('doneapp.lastTags.'+CLIENT+'.'+n.k, '');
+        if(last) { tags.value=last; const c=(tags.value.match(/#/g)||[]).length; count.textContent=c; TAGCOUNT[n.k]=c; }
+      }
+    });
+
+    // seleção/ordem
+    let cooling=false;
+    btn.onclick=()=>{
+      if(cooling) return; cooling=true; setTimeout(()=>cooling=false,3000);
+
+      if(!READY[n.k]){
+        tip.style.display='block'; setTimeout(()=>tip.style.display='none', 3000);
+        // Aqui no futuro: iniciar OAuth/integração para autorizar
+        return;
+      }
+      const idx=ORDER.indexOf(n.k);
+      if(idx===-1){
+        ORDER.push(n.k);
+        btn.classList.add('selected');
+        badge.textContent=String(ORDER.length);
+        badge.style.display='inline-block';
+      }else{
+        ORDER.splice(idx,1);
+        btn.classList.remove('selected');
+        badge.style.display='none';
+        // renumera
+        document.querySelectorAll('.orderBadge').forEach(b=>{ /* recalculado abaixo */ });
+        ORDER.forEach((k,i)=>{
+          const b=[...document.querySelectorAll('.row')].find(r=>r.querySelector('.btnNet').textContent===NETS.find(x=>x.k===k).n)?.querySelector('.orderBadge');
+          if(b){ b.textContent=String(i+1); b.style.display='inline-block'; }
+        });
+      }
+    };
+
+    row.appendChild(name); row.appendChild(tags); row.appendChild(count); row.appendChild(retag);
+    grid.appendChild(row);
+  });
+}
+
+// ===== texto contador =====
+$('text').addEventListener('input', ()=>{ $('textCount').textContent=$('text').value.length; });
+
+// ===== upload (drag & drop + thumb) =====
+function setVideoOrImageUI(file){
+  const isVideo = file.type.startsWith('video/');
+  $('videoThumbBox').style.display = isVideo ? 'block':'none';
+  $('carouselBox').style.display   = !isVideo ? 'block':'none';
+}
+$('drop').onclick=()=>$('file').click();
+$('drop').ondragover=(e)=>{ e.preventDefault(); $('drop').style.borderColor='#38bdf8'; };
+$('drop').ondragleave=()=>{ $('drop').style.borderColor='#334155'; };
+$('drop').ondrop=(e)=>{ e.preventDefault(); $('drop').style.borderColor='#334155'; const f=e.dataTransfer.files[0]; if(!f) return; $('file').files=e.dataTransfer.files; $('thumbs').innerHTML=''; renderThumb(f); setVideoOrImageUI(f); };
+$('file').onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; $('thumbs').innerHTML=''; renderThumb(f); setVideoOrImageUI(f); };
+
+// ===== mesma ordem / apagar todos =====
+$('sameOrder').onchange=(e)=>{
+  if(!e.target.checked) return;
+  const arr = loadJSON(LS.last,[]);
+  if(!arr.length) return;
+  const last=arr[0];
+  // restaurar ordem
+  ORDER.length=0; ORDER.push(...(last.networks||[]));
+  renderNetRows(); // redesenha para limpar badges
+  // marcar novamente
+  ORDER.forEach((k,i)=>{
+    const btn=[...document.querySelectorAll('.btnNet')].find(b=>NETS.find(n=>n.n===b.textContent).k===k);
+    if(btn){ btn.classList.add('selected'); const b=btn.parentElement.querySelector('.orderBadge'); b.textContent=String(i+1); b.style.display='inline-block'; }
+  });
+  // restaurar tags
+  (last.tags||{}) && NETS.forEach(n=>{
+    const input=[...document.querySelectorAll('.row input[type=text]')][NETS.findIndex(x=>x.k===n.k)];
+    if(input && last.tags[n.k]) input.value=last.tags[n.k];
+  });
+};
+function clearAllIfBoth(){
+  if($('clearL').checked && $('clearR').checked){
+    $('text').value=''; $('textCount').textContent='0';
+    $('file').value=''; $('thumbs').innerHTML='';
+    $('thumbVideo').value=''; $('carousel').value='';
+    ORDER.length=0; renderNetRows();
+    $('clearL').checked=false; $('clearR').checked=false;
+    toast('Campos limpos.');
+  }
+}
+$('clearL').onchange=clearAllIfBoth;
+$('clearR').onchange=clearAllIfBoth;
+
+// ===== listar/salvar agendamentos =====
+function renderList(){
+  const arr=loadJSON(LS.last,[]);
+  const box=$('list');
+  if(!arr.length){ box.textContent='Nenhum agendamento ainda.'; return; }
+  box.innerHTML='';
+  arr.forEach((a,idx)=>{
+    const line=document.createElement('div');
+    line.style.margin='6px 0';
+    line.innerHTML=`<span class="pill">${a.when}</span> <span class="pill">${a.client}</span> <span class="pill">redes: ${(a.networks||[]).join(', ')}</span> <span class="pill">${a.mediaName||''}</span> <button data-ed="${idx}">Editar</button> <button data-del="${idx}">Deletar</button>`;
+    const [btnE, btnD] = line.querySelectorAll('button');
+    btnE.onclick=()=>{ // repopula topo
+      $('selClient').value = a.client; $('selClient').dispatchEvent(new Event('change'));
+      $('date').value = a.when.split(' ')[0];
+      $('time').value = a.when.split(' ')[1];
+      $('delay').value = a.delay||0;
+      $('text').value = a.text||''; $('textCount').textContent = $('text').value.length;
+      ORDER.length=0; ORDER.push(...(a.networks||[])); renderNetRows();
+      // aplicar ordem
+      ORDER.forEach((k,i)=>{
+        const btn=[...document.querySelectorAll('.btnNet')].find(b=>NETS.find(n=>n.n===b.textContent).k===k);
+        if(btn){ btn.classList.add('selected'); const b=btn.parentElement.querySelector('.orderBadge'); b.textContent=String(i+1); b.style.display='inline-block'; }
+      });
+      // tags
+      NETS.forEach(n=>{
+        const input=[...document.querySelectorAll('.row input[type=text]')][NETS.findIndex(x=>x.k===n.k)];
+        if(input && a.tags && a.tags[n.k]) input.value=a.tags[n.k];
+      });
+      toast('Agendamento carregado para edição.');
+      window.scrollTo({top:0,behavior:'smooth'});
+    };
+    btnD.onclick=()=>{
+      const arr2=loadJSON(LS.last,[]); arr2.splice(idx,1); saveJSON(LS.last,arr2); renderList(); toast('Agendamento removido.');
+    };
+    box.appendChild(line);
+  });
+}
+function saveSchedule(payload){
+  const arr=loadJSON(LS.last,[]);
+  arr.unshift(payload); while(arr.length>20) arr.pop();
+  saveJSON(LS.last,arr);
+  // salvar últimos tags por cliente/rede
+  NETS.forEach(n=>{
+    const val = payload.tags?.[n.k] || '';
+    if(val) localStorage.setItem('doneapp.lastTags.'+payload.client+'.'+n.k, JSON.stringify(val));
+  });
+  renderList();
+}
+
+// ===== agendar =====
+$('btnSchedule').onclick=async()=>{
+  const client = $('selClient').value==='__solicitar__' ? SELF : $('selClient').value;
+  const file = $('file').files[0];
+  const date = $('date').value, time=$('time').value;
+  const delay = Number($('delay').value||0);
+  if(!date||!time){ toast('Informe data e hora.'); return; }
+  if(!$('text').value.trim()){ toast('Informe o texto.'); return; }
+  if(!file){ toast('Selecione uma mídia.'); return; }
+  if(!ORDER.length){ toast('Selecione ao menos uma rede.'); return; }
+
+  const tags = Object.fromEntries(NETS.map((n,i)=>[n.k, (document.querySelectorAll('.row input[type=text]')[i]||{value:''}).value]));
+  const retag = Object.fromEntries(NETS.map(n=>[n.k,false])); // reservado
+  const payload = { client, when:`${date} ${time}`, delay, text:$('text').value, networks:[...ORDER], tags, retag, mediaName:file.name };
+  // tentativa de backend; se não existir, salva local
+  try{
+    const fd=new FormData(); fd.append('client',client); fd.append('when',payload.when); fd.append('delay',String(delay)); fd.append('text',payload.text);
+    fd.append('order', JSON.stringify(payload.networks)); fd.append('tags', JSON.stringify(tags)); fd.append('retag', JSON.stringify(retag)); fd.append('file',file);
+    const r=await fetch('/api/schedule',{method:'POST',body:fd}); if(!r.ok) throw 0;
+    toast('Agendamento enviado ao servidor.');
+  }catch(_){
+    saveSchedule(payload);
+    toast('Agendamento salvo (demo local).');
+  }
+};
+
+// ===== navegação =====
+$('btnBack').onclick=()=>history.back();
+
+// ===== bootstrap =====
+(async()=>{
+  setDateTimePlus1h();
+  try{
+    const r=await fetch('/api/me'); if(r.status===401){ location.href='/web/login.html'; return; }
+    const me=await r.json(); loadTopCombos(me);
+  }catch(_){ $('userSelf').value='me'; loadTopCombos({username:'me'}); }
+  renderList();
+})();
+</script>
+</body>
+</html>

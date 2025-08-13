@@ -1,0 +1,62 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Templates — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0b1024;color:#e5e7eb}
+  .wrap{width:min(980px,96vw);padding:22px}
+  h2{margin:0 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .card{position:relative;border-radius:16px;border:1px solid #1f2a44;background:#0b1226;padding:12px;cursor:pointer;transition:.2s}
+  .card:hover{transform:translateY(-2px)}
+  .card.active{outline:2px solid #38bdf8;box-shadow:0 0 0 2px #38bdf833}
+  .thumb{aspect-ratio:9/16;border-radius:12px;overflow:hidden;border:1px solid #1f2a44;display:grid;place-items:center}
+  .thumb > div{width:100%;height:100%;background:
+      radial-gradient(100% 100% at 0% 0%, #10b98133 0%, transparent 40%),
+      radial-gradient(100% 120% at 100% 0%, #8b5cf633 0%, transparent 45%),
+      radial-gradient(140% 120% at 100% 100%, #22d3ee33 0%, transparent 55%),
+      linear-gradient(135deg,#0f172a,#111827 60%,#0b1024);
+      filter:saturate(1.2) contrast(1.05)}
+  .label{margin:10px 0 0;font-size:14px}
+  .bar{display:flex;gap:10px;margin-top:16px}
+  .bar button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+  .primary{background:#0ea5e9;color:#001020;border-color:#38bdf8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Escolha um template</h2>
+  <div class="grid" id="grid"></div>
+  <div class="bar">
+    <button id="back">Voltar</button>
+    <button class="primary" id="confirm">Confirmar</button>
+  </div>
+</div>
+<script>
+const TEMPLATES = [
+  {key:'concept_a_glass', name:'Concept A — Glass'},
+  {key:'concept_c1',      name:'Concept C — Glass (gradiente)'},
+  {key:'concept_c2',      name:'Concept C2'},
+  {key:'concept_c3',      name:'Concept C3'},
+  {key:'concept_c4',      name:'Concept C4'},
+];
+const grid = document.getElementById('grid');
+let sel = localStorage.getItem('doneapp.template') || 'concept_c1';
+TEMPLATES.forEach(t=>{
+  const d=document.createElement('div'); d.className='card'+(t.key===sel?' active':'');
+  d.onclick=()=>{ sel=t.key; document.querySelectorAll('.card').forEach(x=>x.classList.remove('active')); d.classList.add('active'); };
+  d.innerHTML=`<div class="thumb"><div></div></div><div class="label">${t.name}</div>`;
+  grid.appendChild(d);
+});
+document.getElementById('back').onclick=()=>location.href='/web/login.html';
+document.getElementById('confirm').onclick=()=>{
+  localStorage.setItem('doneapp.template', sel);
+  const toast=document.createElement('div'); toast.textContent='Template salvo: '+sel; toast.style.position='fixed'; toast.style.bottom='18px'; toast.style.left='50%'; toast.style.transform='translateX(-50%)'; toast.style.background='#111827'; toast.style.border='1px solid #334155'; toast.style.padding='10px 14px'; toast.style.borderRadius='10px'; toast.style.opacity='0.95'; document.body.appendChild(toast); setTimeout(()=>location.href='/web/login.html',800);
+};
+</script>
+</body>
+</html>

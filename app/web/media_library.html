@@ -1,0 +1,53 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Biblioteca de Mídias — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+   background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+ .wrap{width:min(980px,96vw);padding:22px}
+ .card{background:#0b1226;border:1px solid #1f2a44;padding:16px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:12px}
+ .cell{border:1px solid #1f2a44;border-radius:10px;min-height:120px;display:grid;place-items:center;background:#0f172a}
+ .bar{display:flex;gap:10px;align-items:center}
+ .bar input[type=file]{border:1px solid #334155;padding:8px;border-radius:8px;background:#0f172a;color:#e5e7eb}
+ .btn{padding:8px 10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h2>Biblioteca de Mídias</h2>
+    <div class="bar">
+      <input id="file" type="file" multiple accept="image/*,video/*">
+      <button class="btn" id="upload">Enviar</button>
+      <button class="btn" onclick="history.back()">Voltar</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div id="msg" style="margin-top:8px;opacity:.9"></div>
+  </div>
+</div>
+<script>
+const grid=document.getElementById('grid'), msg=document.getElementById('msg');
+function addThumb(name){ const d=document.createElement('div'); d.className='cell'; d.textContent=name; grid.prepend(d); }
+document.getElementById('upload').onclick=async()=>{
+  const files = document.getElementById('file').files; if(!files.length){ alert('Selecione arquivos.'); return; }
+  try{
+    const fd = new FormData(); for(const f of files) fd.append('files', f);
+    const r = await fetch('/api/media',{method:'POST',body:fd});
+    if(!r.ok) throw 0;
+    const j = await r.json(); // esperado: [{name,url},...]
+    j.forEach(x=>addThumb(x.name||'arquivo'));
+    msg.textContent='Upload enviado ao servidor.';
+  }catch(e){
+    for(const f of files) addThumb(f.name);
+    msg.textContent='Upload para WordPress em desenvolvimento (demo local).';
+  }
+};
+</script>
+</body>
+</html>

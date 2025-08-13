@@ -1,0 +1,57 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Permissões — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+   background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+ .wrap{width:min(980px,96vw);padding:22px}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ .card{background:#0b1226;border:1px solid #1f2a44;padding:16px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+ .row{display:flex;gap:8px;margin-top:8px}
+ .row input{flex:1;padding:10px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+ .btn{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+ .muted{opacity:.8}
+ ul{margin:8px 0 0 18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <div class="card">
+      <h3>Quem pode publicar por mim</h3>
+      <div class="row"><input id="grantUser" placeholder="Usuário para autorizar"><button class="btn" id="grantBtn">Autorizar</button></div>
+      <ul id="grantList"><li class="muted">—</li></ul>
+    </div>
+    <div class="card">
+      <h3>Em nome de quem posso publicar</h3>
+      <div class="row"><input id="reqUser" placeholder="Usuário para solicitar"><button class="btn" id="reqBtn">Solicitar</button></div>
+      <ul id="reqList"><li class="muted">—</li></ul>
+    </div>
+  </div>
+  <div style="margin-top:10px"><button class="btn" onclick="history.back()">Voltar</button></div>
+</div>
+<script>
+const grants = JSON.parse(localStorage.getItem('doneapp.grants')||'[]');
+const reqs   = JSON.parse(localStorage.getItem('doneapp.reqs')||'[]');
+function render(){
+  const g=document.getElementById('grantList'), r=document.getElementById('reqList');
+  g.innerHTML = grants.length? grants.map(u=>'<li>'+u+'</li>').join('') : '<li class="muted">—</li>';
+  r.innerHTML = reqs.length? reqs.map(u=>'<li>'+u+'</li>').join('') : '<li class="muted">—</li>';
+}
+document.getElementById('grantBtn').onclick=()=>{
+  const u=(document.getElementById('grantUser').value||'').trim(); if(!u) return;
+  grants.push(u); localStorage.setItem('doneapp.grants',JSON.stringify(grants)); render();
+};
+document.getElementById('reqBtn').onclick=()=>{
+  const u=(document.getElementById('reqUser').value||'').trim(); if(!u) return;
+  reqs.push(u); localStorage.setItem('doneapp.reqs',JSON.stringify(reqs)); render();
+};
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Admin — DoneApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+    .wrap{width:min(1080px,96vw);padding:22px}
+    .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tabs button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+    .tabs button.active{background:#0ea5e9;color:#001020;border-color:#38bdf8}
+    .cta{display:flex;gap:8px}
+    .cta a, .cta button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:transparent;color:#e5e7eb;text-decoration:none;cursor:pointer}
+    .card{background:#0b1226;border:1px solid #1f2a44;padding:14px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #1f2a44;padding:8px 6px;text-align:left}
+    .muted{opacity:.8}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <div class="tabs">
+        <button class="active" data-tab="users">Usuários</button>
+        <button data-tab="logs">Logs</button>
+        <button data-tab="config">Configurações</button>
+        <button data-tab="pending">Pendências</button>
+      </div>
+      <div class="cta">
+        <button id="back">Voltar</button>
+        <button id="goClients">Clientes</button>
+      </div>
+    </div>
+
+    <div id="users" class="card">
+      <h3>Usuários</h3>
+      <div class="muted">Em desenvolvimento — exibiremos lista com último acesso, status, ações de aprovar/bloquear.</div>
+      <table style="margin-top:10px"><thead><tr><th>Usuário</th><th>Email</th><th>Status</th><th>Último acesso</th></tr></thead><tbody id="usersBody"><tr><td colspan="4" class="muted">—</td></tr></tbody></table>
+    </div>
+
+    <div id="logs" class="card" style="display:none">
+      <h3>Logs</h3>
+      <div class="muted">Em desenvolvimento — filtro por IP/usuário/ação, paginação.</div>
+    </div>
+
+    <div id="config" class="card" style="display:none">
+      <h3>Configurações</h3>
+      <div class="muted">Em desenvolvimento — edição de variáveis do sistema (rate limit, janelas, templates …).</div>
+    </div>
+
+    <div id="pending" class="card" style="display:none">
+      <h3>Pendências</h3>
+      <div class="muted">Em desenvolvimento — aprovar/recusar cadastros pendentes.</div>
+    </div>
+  </div>
+
+  <script>
+    // tabs
+    const tabs = document.querySelectorAll('.tabs button');
+    const panes = ['users','logs','config','pending'].map(id=>document.getElementById(id));
+    tabs.forEach(b=>b.onclick=()=>{ tabs.forEach(x=>x.classList.remove('active')); b.classList.add('active'); panes.forEach(p=>p.style.display=p.id===b.dataset.tab?'block':'none'); });
+
+    document.getElementById('back').onclick = ()=>location.href='/web/login.html';
+    document.getElementById('goClients').onclick = ()=>location.href='/web/clients.html';
+
+    // guard: precisa ser admin MASTER
+    (async ()=>{
+      try{
+        const r = await fetch('/api/me'); if(r.status===401){ location.href='/web/login.html'; return; }
+        const me = await r.json();
+        const klass = (me.class||'0000000000'); if (klass.charAt(4)!=='9'){ location.href='/web/clients.html'; }
+      }catch(e){ location.href='/web/login.html'; }
+    })();
+  </script>
+</body>
+</html>

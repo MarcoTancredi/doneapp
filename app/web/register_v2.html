@@ -2,201 +2,68 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <title>Cadastro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:
-        radial-gradient(1200px 800px at 85% 10%, #00c2ff 0%, transparent 60%),
-        radial-gradient(1000px 800px at 15% 90%, #ff2ea6 0%, transparent 55%),
-        linear-gradient(180deg,#0b1024,#130a1f); color:#f8fafc}
-    .phone{width:min(420px,92vw);aspect-ratio:9/16;position:relative;border-radius:26px;padding:26px;
-      background:linear-gradient(180deg,#ffffff07,#ffffff03);
-      box-shadow:0 40px 120px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18); display:flex;align-items:center;justify-content:center}
-    .card{width:100%;max-width:360px;padding:22px 20px 18px;background:#ffffff10;border:1px solid #ffffff28;
-      backdrop-filter:blur(20px);border-radius:20px;box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 20px 60px rgba(0,0,0,.55); position:relative}
-    .card:after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 0 30px 2px rgba(0,194,255,.25),0 0 36px 4px rgba(255,46,166,.18)}
-    h1{margin:0 0 6px;font-size:20px}
-    p.sub{margin:0 0 16px;opacity:.9;font-size:13px}
-    .row{display:flex;gap:10px;align-items:center}
-    .field{margin:10px 0}
-    .field input, .field select{width:100%;padding:12px 14px;color:#f8fafc;background:#070a17e0;border:1px solid #263055;border-radius:12px;outline:none}
-    .avatar{width:56px;height:56px;border-radius:50%;border:1px solid #3b445d;object-fit:cover;background:#111}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .checks{display:grid;gap:8px;margin-top:4px;font-size:13px;color:#cbd5e1}
-    .checks label{display:flex;gap:8px;align-items:flex-start}
-    .cta{display:flex;gap:10px;margin-top:10px}
-    .cta button{flex:1;padding:12px 14px;border:0;border-radius:12px;cursor:pointer;font-weight:800}
-    .primary{background:linear-gradient(180deg,#00c2ff,#0ea5e9);color:#001020;box-shadow:0 10px 24px rgba(14,165,233,.35)}
-    .ghost{background:transparent;color:#e5e7eb;border:1px solid #ffffff28}
-    .muted{font-size:12px;opacity:.8}
-    .err{color:#fecaca;font-size:13px;margin-top:6px;display:none}
-    .ok{color:#bbf7d0;font-size:13px;margin-top:6px;display:none}
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#0ea5e9;color:#001020;font-weight:700;font-size:12px;margin-left:8px}
-  </style>
+<meta charset="utf-8">
+<title>Cadastro — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+ .phone{width:min(520px,94vw);padding:24px}
+ .card{background:rgba(11,18,38,.72);backdrop-filter:blur(10px);border:1px solid #1f2a44;border-radius:18px;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ .field{margin:8px 0}
+ input{width:100%;padding:12px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+ .row{display:flex;gap:10px;margin-top:12px}
+ .btn{padding:12px 14px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+ .primary{background:#0ea5e9;color:#001020;border-color:#38bdf8}
+ .muted{opacity:.85}
+ .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111827;border:1px solid #334155;padding:10px 14px;border-radius:10px;opacity:.95}
+</style>
 </head>
 <body>
-  <div class="phone">
-    <div class="card">
-      <h1>Cadastro <span id="ssoBadge" class="badge" style="display:none">YouTube</span></h1>
-      <p class="sub" id="subtitle">Crie sua conta para começar.</p>
-
-      <div class="row" id="ssoHeader" style="display:none">
-        <img id="avatar" class="avatar" alt="avatar">
-        <div>
-          <div id="nameLbl" class="muted">Nome</div>
-          <div id="emailLbl" class="muted">Email</div>
-        </div>
-      </div>
-
-      <div class="field"><input id="name" placeholder="Nome completo" autocomplete="name"></div>
-      <div class="field"><input id="email" placeholder="Email" autocomplete="email"></div>
-      <div class="field"><input id="username" placeholder="Nome de Usuário (sem @)" autocomplete="username"></div>
-
-      <div id="pwBlock">
-        <div class="two">
-          <div class="field"><input id="password" type="password" placeholder="Senha (mín. 8)"></div>
-          <div class="field"><input id="confirm" type="password" placeholder="Confirmar senha"></div>
-        </div>
-      </div>
-
-      <div class="two">
-        <div class="field">
-          <select id="country">
-            <option value="">País (opcional)</option>
-            <option>Brasil</option><option>Portugal</option><option>Estados Unidos</option><option>Outro</option>
-          </select>
-        </div>
-        <div class="field"><input id="phone" placeholder="Telefone (opcional)"></div>
-      </div>
-
-      <div class="checks">
-        <label><input type="checkbox" id="terms"> Concordo com os <a href="#" style="color:#7dd3fc">Termos</a> e <a href="#" style="color:#7dd3fc">Privacidade</a>.</label>
-        <label><input type="checkbox" id="mk"> Quero receber novidades por email (opcional).</label>
-      </div>
-
-      <div class="cta">
-        <button id="back" class="ghost">Voltar</button>
-        <button id="close" class="ghost">Desligar</button>
-        <button id="create" class="primary">Criar conta</button>
-      </div>
-
-      <div id="err" class="err"></div>
-      <div id="ok" class="ok"></div>
+<div class="phone">
+  <div class="card">
+    <h2>Cadastro</h2>
+    <div class="grid">
+      <div class="field"><label>Usuário</label><input id="username" placeholder="único, sem @"></div>
+      <div class="field"><label>Nome completo</label><input id="full_name"></div>
+      <div class="field"><label>Empresa</label><input id="company"></div>
+      <div class="field"><label>Telefone</label><input id="phone" placeholder="+55 11 9999-9999"></div>
+      <div class="field"><label>E-mail</label><input id="email" type="email"></div>
+      <div class="field"><label>Senha (opcional p/ SSO)</label><input id="password" type="password"></div>
     </div>
+    <div class="row">
+      <button class="btn" id="back">Voltar</button>
+      <button class="btn primary" id="create">Criar conta</button>
+    </div>
+    <div class="muted" id="msg" style="margin-top:8px">—</div>
   </div>
-
-  <script>
-    function qs(k){return new URLSearchParams(location.search).get(k)}
-    const sid = qs('sid'); // se existir, é SSO YouTube
-
-    // elements
-    const name = document.getElementById('name');
-    const email = document.getElementById('email');
-    const username = document.getElementById('username');
-    const password = document.getElementById('password');
-    const confirm = document.getElementById('confirm');
-    const country = document.getElementById('country');
-    const phone = document.getElementById('phone');
-    const terms = document.getElementById('terms');
-    const mk = document.getElementById('mk');
-    const ssoHeader = document.getElementById('ssoHeader');
-    const ssoBadge = document.getElementById('ssoBadge');
-    const subtitle = document.getElementById('subtitle');
-    const avatar = document.getElementById('avatar');
-    const nameLbl = document.getElementById('nameLbl');
-    const emailLbl = document.getElementById('emailLbl');
-    const pwBlock = document.getElementById('pwBlock');
-    const elErr = document.getElementById('err');
-    const elOk = document.getElementById('ok');
-
-    function showErr(msg){ elErr.textContent = msg; elErr.style.display = 'block'; elOk.style.display='none'; }
-    function showOk(msg){ elOk.textContent = msg; elOk.style.display = 'block'; elErr.style.display='none'; }
-
-    const mode = sid ? 'sso' : 'manual';
-
-    async function loadSSO(){
-      if (mode !== 'sso') return;
-      ssoBadge.style.display='inline-block';
-      ssoHeader.style.display='flex';
-      subtitle.textContent = 'Usaremos seu perfil do YouTube para começar.';
-      pwBlock.style.display='none';
-      try{
-        const r = await fetch(`/api/oauth/google/session/${sid}`);
-        if (!r.ok){ showErr('Sessão expirada ou inválida.'); return; }
-        const j = await r.json();
-        const p = j.profile || {};
-        name.value = p.name || '';
-        email.value = p.email || '';
-        username.value = (p.email||'').split('@')[0] || '';
-        avatar.src = p.picture || '';
-        nameLbl.textContent = p.name || '—';
-        emailLbl.textContent = p.email || '—';
-        email.readOnly = true;
-      }catch(e){ showErr('Falha ao carregar sessão.'); }
-    }
-
-    // ações
-    document.getElementById('back').onclick = ()=>{ location.href = '/web/login.html'; };
-    document.getElementById('close').onclick = async ()=>{
-      if (mode==='sso' && sid){ try{ await fetch(`/api/oauth/google/session/${sid}`, {method:'DELETE'}); }catch(e){} }
-      location.href = '/web/login.html';
-    };
-
-    function validate(){
-      const u = (username.value||'').trim();
-      if (!u || u.includes('@') || /\s/.test(u)) return 'Informe um Nome de Usuário válido (sem @ e sem espaços).';
-      const n = (name.value||'').trim(); if (!n) return 'Informe seu nome.';
-      const em = (email.value||'').trim(); if (!em || !em.includes('@')) return 'Informe um email válido.';
-      if (!terms.checked) return 'Você precisa aceitar os Termos e Privacidade.';
-      if (mode==='manual'){
-        const p = password.value||''; const c = confirm.value||'';
-        if (p.length < 8) return 'Senha deve ter pelo menos 8 caracteres.';
-        if (p !== c) return 'As senhas não conferem.';
-      }
-      return null;
-    }
-
-    document.getElementById('create').onclick = async ()=>{
-      elErr.style.display='none'; elOk.style.display='none';
-      const v = validate(); if (v){ showErr(v); return; }
-      const payload = {
-        username: (username.value||'').trim(),
-        name: (name.value||'').trim(),
-        email: (email.value||'').trim(),
-        country: country.value||'',
-        phone: phone.value||'',
-        mk: !!mk.checked
-      };
-      try{
-        if (mode==='sso'){
-          const r = await fetch(`/api/oauth/google/session/${sid}/finalize`, {
-            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
-          });
-          const j = await r.json();
-          if (!r.ok || !j.ok){ showErr(j.error || 'Falha ao finalizar.'); return; }
-          showOk('Conta criada (modo demo). Redirecionando…');
-          setTimeout(()=>{ location.href = '/web/login.html'; }, 1000);
-        } else {
-          // cadastro manual — tenta endpoint padrão; se não existir, mostra demo
-          const r = await fetch('/api/signup', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({...payload, password: password.value||''})
-          });
-          if (r.ok){
-            showOk('Cadastro realizado! Você já pode entrar.');
-            setTimeout(()=>{ location.href = '/web/login.html'; }, 1000);
-          } else {
-            showErr('Endpoint /api/signup indisponível (demo). Integraremos no próximo passo.');
-          }
-        }
-      }catch(e){ showErr('Erro de rede.'); }
-    };
-
-    loadSSO();
-  </script>
+</div>
+<script>
+const API_ORIGIN = (location.hostname.endsWith('planetamicro.com.br') ? 'https://api.planetamicro.com.br' : '');
+const p = new URLSearchParams(location.search);
+const sid = p.get('sid')||'';
+function toast(s){ const t=document.createElement('div'); t.className='toast'; t.textContent=s; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+document.getElementById('back').onclick=()=>location.href='/web/login.html';
+document.getElementById('create').onclick=async()=>{
+  const body = {
+    username:document.getElementById('username').value.trim(),
+    full_name:document.getElementById('full_name').value.trim(),
+    company:document.getElementById('company').value.trim(),
+    phone:document.getElementById('phone').value.trim(),
+    email:document.getElementById('email').value.trim(),
+    password:document.getElementById('password').value,
+    sid: sid || null
+  };
+  if(!body.username || !body.email){ toast('Usuário e e-mail são obrigatórios.'); return; }
+  if(body.username.includes('@')){ toast('Usuário não pode conter @.'); return; }
+  try{
+    const r = await fetch(API_ORIGIN + '/api/register', {method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify(body)});
+    if(!r.ok){ const j=await r.json().catch(()=>({})); toast(j.error||'Falha no cadastro'); return; }
+    toast('Cadastro criado!'); 
+    setTimeout(()=>location.href='/web/login.html?registered=1',800);
+  }catch(e){ toast('Erro de rede no cadastro'); }
+};
+</script>
 </body>
 </html>

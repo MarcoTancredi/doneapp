@@ -1,0 +1,90 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Integrações — DoneApp</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+   background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+ .wrap{width:min(900px,96vw);padding:22px}
+ .card{background:#0b1226;border:1px solid #1f2a44;padding:16px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+ table{width:100%;border-collapse:collapse}
+ th,td{border-bottom:1px solid #1f2a44;padding:10px;text-align:left}
+ .btn{padding:8px 10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+ .green{background:#16a34a;border-color:#22c55e;color:#00180a}
+ .muted{opacity:.85}
+ .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;background:#111827;border:1px solid #334155;padding:10px 14px;border-radius:10px;opacity:.95}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h2>Integrações</h2>
+    <table><thead><tr><th>Rede</th><th>Status</th><th>Ação</th></tr></thead><tbody id="tbody"></tbody></table>
+    <div class="muted" style="margin-top:8px">Conexões sem backend exibem aviso de desenvolvimento por 3s.</div>
+    <div style="margin-top:10px"><button class="btn" onclick="history.back()">Voltar</button></div>
+  </div>
+</div>
+<script>
+const API_ORIGIN = (location.hostname.endsWith('planetamicro.com.br') ? 'https://api.planetamicro.com.br' : '');
+const ROWS = [
+  {key:'youtube',  label:'YouTube', connect:'/api/oauth/google/start', ready:true},
+  {key:'tiktok',   label:'TikTok',  ready:false},
+  {key:'instagram',label:'Instagram', ready:false},
+  {key:'facebook', label:'Facebook',  ready:false},
+  {key:'kwai',     label:'Kwai',      ready:false},
+  {key:'twitterx', label:'Twitter/X', ready:false},
+  {key:'linkedin', label:'LinkedIn',  ready:false},
+];
+const tbody = document.getElementById('tbody');
+function toast(s){ const t=document.createElement('div'); t.className='toast'; t.textContent=s; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+let state = {}; // key -> connected bool
+
+async function refresh(){
+  try{
+    const r = await fetch(API_ORIGIN + '/api/integrations', {credentials:'include'});
+    if(r.ok){ state = await r.json(); }
+  }catch(e){}
+  tbody.innerHTML='';
+  ROWS.forEach(n=>{
+    const tr=document.createElement('tr');
+    const st=!!state[n.key];
+    tr.innerHTML = `
+      <td>${n.label}</td>
+      <td>${st?'<span style="color:#86efac">Conectado</span>':'<span class="muted">Não conectado</span>'}</td>
+      <td><button class="btn ${st?'green':''}" data-k="${n.key}">${st?'Desconectar':'Conectar'}</button></td>`;
+    const btn=tr.querySelector('button');
+    btn.onclick=async()=>{
+      if(n.ready){
+        if(!st){
+          if(n.connect){ 
+            try{
+              const r=await fetch(API_ORIGIN + n.connect,{method:'POST',credentials:'include'}); 
+              const j=await r.json(); 
+              if(j.url) location.href=j.url; else toast('Falha ao iniciar OAuth.');
+            }catch(e){ toast('Falha ao iniciar OAuth.'); }
+          }
+        }else{
+          try{
+            await fetch(API_ORIGIN + '/api/integrations/'+n.key,{method:'DELETE',credentials:'include'});
+            refresh();
+          }catch(e){ refresh(); }
+        }
+      }else{
+        btn.textContent='Em desenvolvimento...'; setTimeout(()=>{btn.textContent=st?'Desconectar':'Conectar';},3000);
+      }
+    };
+    tbody.appendChild(tr);
+  });
+}
+(async()=>{
+  const me = await fetch(API_ORIGIN + '/api/me', {credentials:'include'});
+  if(me.status===401){ location.href='/web/login.html'; return; }
+  refresh();
+})();
+</script>
+</body>
+</html>

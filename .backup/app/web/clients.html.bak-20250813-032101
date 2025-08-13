@@ -1,0 +1,72 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Clientes — DoneApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+    .wrap{width:min(1000px,96vw);padding:22px}
+    .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .bar h2{margin:0}
+    .card{background:#0b1226;border:1px solid #1f2a44;padding:14px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #1f2a44;padding:8px 6px;text-align:left}
+    .cta button{padding:8px 10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+    .muted{opacity:.8}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <h2>Clientes</h2>
+      <div class="cta">
+        <button id="back">Voltar</button>
+        <button id="admin">Admin</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead><tr><th>Cliente</th><th>Email</th><th>Ações</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="3" class="muted">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const tbody = document.getElementById('tbody');
+    document.getElementById('back').onclick = ()=>location.href='/web/login.html';
+    document.getElementById('admin').onclick = ()=>location.href='/web/admin.html';
+
+    function row(c){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${c.name||c.username}</td>
+        <td>${c.email||'—'}</td>
+        <td>
+          <button data-act="schedule">Agendar</button>
+          <button data-act="grant">Autorizar outros</button>
+          <button data-act="request">Pedir autorização</button>
+        </td>`;
+      tr.querySelector('[data-act="schedule"]').onclick = ()=>location.href='/web/scheduler.html?client='+encodeURIComponent(c.username);
+      tr.querySelector('[data-act="grant"]').onclick = ()=>alert('Em desenvolvimento: conceder permissões a outro usuário.');
+      tr.querySelector('[data-act="request"]').onclick = ()=>alert('Em desenvolvimento: solicitar permissão para publicar em nome de outro.');
+      return tr;
+    }
+
+    (async ()=>{
+      try{
+        const r = await fetch('/api/me'); if(r.status===401){ location.href='/web/login.html'; return; }
+        const me = await r.json();
+        tbody.innerHTML = ''; tbody.appendChild(row({ username: me.username||'me', name: me.full_name||'Você', email: me.email||'' }));
+      }catch(e){
+        tbody.innerHTML = '<tr><td colspan="3" class="muted">Erro ao carregar.</td></tr>';
+      }
+    })();
+  </script>
+</body>
+</html>

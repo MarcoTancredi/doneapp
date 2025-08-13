@@ -1,0 +1,244 @@
+
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Agendar — DoneApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:linear-gradient(180deg,#0b1024,#130a1f);color:#e5e7eb}
+    .wrap{width:min(1000px,96vw);padding:22px}
+    .card{background:#0b1226;border:1px solid #1f2a44;padding:14px;border-radius:12px;box-shadow:0 0 0 1px #0f1a33}
+    h2{margin:0 0 12px}
+    .row{display:grid;grid-template-columns:140px 1fr 90px 70px;gap:10px;align-items:center;margin:6px 0}
+    .row .name{display:flex;gap:8px;align-items:center}
+    .row .name button{width:120px;padding:10px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer;position:relative}
+    .row .name button.green{background:#16a34a;border-color:#22c55e;color:#00180a}
+    .row .name button.gray{opacity:.6}
+    .row input[type=text]{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+    .row .count{width:90px;text-align:center;opacity:.8}
+    .row .retag{width:70px;text-align:center}
+    .grid{display:grid;gap:10px}
+    .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .muted{opacity:.8}
+    textarea{width:100%;min-height:120px;padding:10px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb}
+    .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .bar button{padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#e5e7eb;cursor:pointer}
+    .bar .primary{background:#0ea5e9;color:#001020;border-color:#38bdf8}
+    .tip{position:absolute;left:0;right:0;bottom:-26px;font-size:12px;opacity:.9;background:#111827;padding:6px 8px;border-radius:8px;display:none}
+    .orderBadge{position:absolute;top:-10px;right:-10px;background:#0ea5e9;color:#001020;border-radius:999px;padding:2px 7px;font-weight:800;font-size:12px;border:2px solid #001020;display:none}
+    .row .name button.selected .orderBadge{display:inline-block}
+    .hr{height:1px;background:#1f2a44;margin:12px 0}
+    .list{font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h2>Agendar publicação</h2>
+
+      <div class="pair">
+        <div class="field">
+          <label>Usuário *</label>
+          <input id="client" placeholder="Seu usuário">
+        </div>
+        <div class="field">
+          <label>Upload da Imagem ou Vídeo *</label>
+          <input id="media" type="file" accept="image/*,video/*">
+        </div>
+      </div>
+
+      <div class="pair" style="margin-top:8px">
+        <div class="field">
+          <label>Data *</label>
+          <input id="date" type="date">
+        </div>
+        <div class="field">
+          <label>Hora *</label>
+          <input id="time" type="time" step="60">
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:8px">
+        <label>Delay (segundos)</label>
+        <input id="delay" type="number" min="0" value="30">
+      </div>
+
+      <div class="field" style="margin-top:8px">
+        <label>Texto da publicação *</label>
+        <textarea id="text" placeholder="Digite o texto da publicação"></textarea>
+        <div class="muted"><span id="textCount">0</span> caracteres</div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="grid" id="netGrid"></div>
+
+      <div class="hr"></div>
+
+      <div class="bar">
+        <label><input type="checkbox" id="sameOrder"> Mesma ordem da última publicação</label>
+        <label><input type="checkbox" id="clearAll"> Apagar todos</label>
+        <button class="primary" id="btnSchedule">Agendar</button>
+        <button id="btnBack">Voltar</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <h3>Últimos agendamentos</h3>
+      <div class="list" id="lastList">Nenhum agendamento ainda.</div>
+    </div>
+  </div>
+
+  <script>
+  const NETWORKS = [
+    { key:'youtube',  label:'YouTube' },
+    { key:'tiktok',   label:'TikTok' },
+    { key:'instagram',label:'Instagram' },
+    { key:'facebook', label:'Facebook' },
+    { key:'kwai',     label:'Kwai' },
+    { key:'twitterx', label:'Twitter/X' },
+    { key:'linkedin', label:'LinkedIn' },
+  ];
+
+  // Em desenvolvimento: redes disponíveis (verdadeiras ficarão verdes)
+  const READY = { youtube: false, tiktok: false, instagram: false, facebook: false, kwai: false, twitterx: false, linkedin: false };
+
+  const grid = document.getElementById('netGrid');
+  const order = []; // sequência selecionada
+  const tagCounts = {};
+  const lastKey = 'doneapp.lastSchedules';
+
+  function makeRow(n){
+    const row = document.createElement('div'); row.className='row';
+    const btn = document.createElement('button'); btn.textContent=n.label; btn.className = READY[n.key]?'green':'';
+    const badge = document.createElement('span'); badge.className='orderBadge'; badge.textContent='1'; btn.appendChild(badge);
+    const tip = document.createElement('div'); tip.className='tip'; tip.textContent='Em desenvolvimento — backend desta rede ainda não está pronto.'; btn.appendChild(tip);
+
+    const name = document.createElement('div'); name.className='name'; name.appendChild(btn);
+
+    const tags = document.createElement('input'); tags.type='text'; tags.placeholder=`#tags para ${n.label}`;
+    const count = document.createElement('div'); count.className='count'; count.textContent='0';
+    const retag = document.createElement('div'); retag.className='retag';
+    const cb = document.createElement('input'); cb.type='checkbox'; cb.title='ReTag'; retag.appendChild(cb);
+
+    // contador de hashtags
+    tags.addEventListener('input', ()=>{ const c=(tags.value.match(/#/g)||[]).length; count.textContent=c; tagCounts[n.key]=c; });
+
+    // lógica de seleção/ordem
+    let cooling=false;
+    btn.onclick = ()=>{
+      if (cooling) return;
+      cooling = true; setTimeout(()=>cooling=false,3000);
+
+      if (!READY[n.key]){
+        tip.style.display='block';
+        setTimeout(()=>tip.style.display='none', 3000);
+        return;
+      }
+      const idx = order.indexOf(n.key);
+      if (idx===-1){
+        order.push(n.key);
+        btn.classList.add('selected'); badge.textContent=String(order.length);
+      }else{
+        order.splice(idx,1);
+        btn.classList.remove('selected');
+        // renumera
+        document.querySelectorAll('.row .name button.selected .orderBadge').forEach((b,i)=>b.textContent=String(i+1));
+      }
+    };
+
+    row.appendChild(name); row.appendChild(tags); row.appendChild(count); row.appendChild(retag);
+    grid.appendChild(row);
+  }
+
+  NETWORKS.forEach(makeRow);
+
+  // campos básicos
+  const text = document.getElementById('text');
+  const textCount = document.getElementById('textCount');
+  text.addEventListener('input', ()=>{ textCount.textContent = text.value.length; });
+
+  document.getElementById('btnBack').onclick = ()=>history.back();
+
+  function saveLast(payload){
+    const arr = JSON.parse(localStorage.getItem(lastKey)||'[]');
+    arr.unshift(payload); while(arr.length>10) arr.pop();
+    localStorage.setItem(lastKey, JSON.stringify(arr));
+    renderLast();
+  }
+  function renderLast(){
+    const arr = JSON.parse(localStorage.getItem(lastKey)||'[]');
+    const box = document.getElementById('lastList');
+    if (!arr.length){ box.textContent='Nenhum agendamento ainda.'; return; }
+    box.innerHTML = arr.map(a=>`• ${a.when} — ${a.client} — redes: ${a.networks.join(', ')}`).join('<br>');
+  }
+  renderLast();
+
+  document.getElementById('sameOrder').onchange = (e)=>{
+    if (!e.target.checked) return;
+    const arr = JSON.parse(localStorage.getItem(lastKey)||'[]');
+    if (!arr.length) return;
+    const last = arr[0];
+    order.length=0; order.push(...last.networks);
+    // aplicar UI
+    document.querySelectorAll('.row .name button').forEach(b=>b.classList.remove('selected'));
+    order.forEach((k,i)=>{
+      const btn=[...document.querySelectorAll('.row .name button')].find(b=>b.textContent.trim()===NETWORKS.find(n=>n.key===k).label);
+      if (btn){ btn.classList.add('selected'); btn.querySelector('.orderBadge').textContent=String(i+1); }
+    });
+  };
+
+  document.getElementById('clearAll').onchange = (e)=>{
+    if (!e.target.checked) return;
+    order.length=0;
+    document.querySelectorAll('.row .name button').forEach(b=>b.classList.remove('selected'));
+    document.getElementById('clearAll').checked=false;
+  };
+
+  document.getElementById('btnSchedule').onclick = async ()=>{
+    const client = document.getElementById('client').value.trim() || 'me';
+    const file = document.getElementById('media').files[0];
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value;
+    const delay = Number(document.getElementById('delay').value||0);
+    if (!file){ alert('Escolha uma imagem ou vídeo.'); return; }
+    if (!text.value.trim()){ alert('Informe o texto da publicação.'); return; }
+    if (!date || !time){ alert('Informe data e hora.'); return; }
+    if (!order.length){ alert('Selecione pelo menos uma rede.'); return; }
+
+    // Monta payload (por enquanto só exibe / salva localmente; backend virá depois)
+    const payload = {
+      client, when: `${date} ${time}`, delay,
+      text: text.value,
+      networks: [...order],
+      tags: Object.fromEntries(NETWORKS.map(n=>[n.key, (document.querySelector(\`.row input[placeholder="#tags para ${n.label}"]\`)||{value:''}).value])),
+      retag: Object.fromEntries(NETWORKS.map(n=>[n.key, !!document.querySelector(\`.row .retag input[type=checkbox]\`) ?.checked : false])),
+      mediaName: file.name
+    };
+
+    // Tentar backend (se existir), senão salvar local
+    try{
+      const form = new FormData();
+      form.append('client', client);
+      form.append('when', `${date} ${time}`);
+      form.append('delay', String(delay));
+      form.append('text', text.value);
+      form.append('order', JSON.stringify(order));
+      form.append('tags', JSON.stringify(payload.tags));
+      form.append('retag', JSON.stringify(payload.retag));
+      form.append('file', file);
+
+      const r = await fetch('/api/schedule', { method:'POST', body: form });
+      if(!r.ok) throw new Error('no backend');
+      alert('Agendamento enviado ao servidor!');
+    }catch(e){
+      saveLast(payload);
+      alert('Backend de agendamento em desenvolvimento. Salvamos localmente.');
+    }
+  };
+  </script>
+</body>
+</html>
